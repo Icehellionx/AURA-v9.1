@@ -5104,14 +5104,47 @@
         window.renderTutorialStep();
       };
 
+      /**
+       * Clamp tooltip position to stay within viewport bounds
+       * @param {number} left - Desired left position
+       * @param {number} top - Desired top position
+       * @param {DOMRect} tipRect - Tooltip bounding rectangle
+       * @param {number} padding - Padding from viewport edges
+       * @returns {Object} Clamped {left, top} position
+       */
+      function clampToViewport(left, top, tipRect, padding) {
+        padding = padding || 10;
+
+        // Get viewport dimensions
+        var viewportWidth = window.innerWidth;
+        var viewportHeight = window.innerHeight;
+
+        // Clamp horizontal position
+        if (left < padding) {
+          left = padding;
+        } else if (left + tipRect.width > viewportWidth - padding) {
+          left = viewportWidth - tipRect.width - padding;
+        }
+
+        // Clamp vertical position
+        if (top < padding) {
+          top = padding;
+        } else if (top + tipRect.height > viewportHeight - padding) {
+          top = viewportHeight - tipRect.height - padding;
+        }
+
+        return { left: left, top: top };
+      }
+
       window.renderTutorialStep = function() {
         var step = currentTutData[tutStep];
         var ring = document.getElementById('tutorialRing');
         var tip = document.getElementById('tutorialTooltip');
-        
+
         document.getElementById('tutTitle').innerText = step.title;
         document.getElementById('tutText').innerText = step.text;
         tip.style.display = 'flex';
+        tip.style.transform = 'none'; // Reset transform
 
         if (step.id) {
           var el = document.getElementById(step.id);
@@ -5123,22 +5156,47 @@
             ring.style.left = (rect.left - 5) + 'px';
             ring.style.width = (rect.width + 10) + 'px';
             ring.style.height = (rect.height + 10) + 'px';
-            
+
+            // Get tooltip dimensions (must be visible to measure)
             var tipRect = tip.getBoundingClientRect();
+
+            // Try to position below the element first
             var topPos = rect.bottom + 15;
-            // If tooltip falls off bottom, flip above
-            if (topPos + tipRect.height > window.innerHeight) {
+            var leftPos = rect.left;
+
+            // If tooltip would go off the bottom, try positioning above
+            if (topPos + tipRect.height > window.innerHeight - 10) {
               topPos = rect.top - tipRect.height - 15;
             }
-            tip.style.top = topPos + 'px';
-            tip.style.left = rect.left + 'px';
+
+            // If still off screen (element at very top), position beside it
+            if (topPos < 10) {
+              topPos = rect.top;
+              leftPos = rect.right + 15;
+
+              // If off right edge, try left side
+              if (leftPos + tipRect.width > window.innerWidth - 10) {
+                leftPos = rect.left - tipRect.width - 15;
+              }
+            }
+
+            // Final clamp to ensure it's fully within viewport
+            var clamped = clampToViewport(leftPos, topPos, tipRect, 10);
+            tip.style.top = clamped.top + 'px';
+            tip.style.left = clamped.left + 'px';
             return;
           }
         }
+
+        // Fallback: center on screen
         ring.style.display = 'none';
-        tip.style.top = '100px';
-        tip.style.left = '50%';
-        tip.style.transform = 'translateX(-50%)';
+        var tipRect = tip.getBoundingClientRect();
+        var centeredLeft = (window.innerWidth - tipRect.width) / 2;
+        var centeredTop = 100;
+
+        var clamped = clampToViewport(centeredLeft, centeredTop, tipRect, 10);
+        tip.style.top = clamped.top + 'px';
+        tip.style.left = clamped.left + 'px';
       };
 
       window.nextTutorialStep = function() {
