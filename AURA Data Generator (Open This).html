@@ -968,10 +968,10 @@
         </div>
       </div>
 
-      <div class="data-type-selector">
-        <button class="data-type-btn active" onclick="window.switchType('characters', event)">Chars</button>
-        <button class="data-type-btn" onclick="window.switchType('pairs', event)">Pairs</button>
-        <button class="data-type-btn" onclick="window.switchType('dynamiclore', event)">Lore</button>
+      <div class="data-type-selector" role="tablist" aria-label="Data type selector">
+        <button class="data-type-btn active" onclick="window.switchType('characters', event)" role="tab" aria-selected="true" aria-controls="entriesList">Chars</button>
+        <button class="data-type-btn" onclick="window.switchType('pairs', event)" role="tab" aria-selected="false" aria-controls="entriesList">Pairs</button>
+        <button class="data-type-btn" onclick="window.switchType('dynamiclore', event)" role="tab" aria-selected="false" aria-controls="entriesList">Lore</button>
       </div>
 
       <div class="entries-list" id="entriesList"></div>
@@ -1002,14 +1002,14 @@
           <input type="password" id="apiKey" name="password" class="form-input small" placeholder="Enter API Key (Gemini or OpenRouter)" autocomplete="current-password">
           <button type="submit" class="pill-button small">Save</button>
         </form>
-        <div class="tab-toggle">
-          <button class="tab-button active" onclick="window.switchTab('visual')">Visual</button>
-          <button class="tab-button" onclick="window.switchTab('code')">Code</button>
-          <button class="tab-button" onclick="window.switchTab('graph')">Graph</button>
-          <button class="tab-button" onclick="window.switchTab('laboratory')">Laboratory</button>
-          <button class="tab-button" onclick="window.switchTab('personality')">Personality</button>
-          <button class="tab-button" onclick="window.switchTab('scenario')">Scenario</button>
-          <button class="tab-button" onclick="window.switchTab('initialMessage')">Init Msg</button>
+        <div class="tab-toggle" role="tablist" aria-label="Main view tabs">
+          <button class="tab-button active" onclick="window.switchTab('visual')" role="tab" aria-selected="true" aria-controls="visualEditor">Visual</button>
+          <button class="tab-button" onclick="window.switchTab('code')" role="tab" aria-selected="false" aria-controls="codeView">Code</button>
+          <button class="tab-button" onclick="window.switchTab('graph')" role="tab" aria-selected="false" aria-controls="graphView">Graph</button>
+          <button class="tab-button" onclick="window.switchTab('laboratory')" role="tab" aria-selected="false" aria-controls="laboratoryView">Laboratory</button>
+          <button class="tab-button" onclick="window.switchTab('personality')" role="tab" aria-selected="false" aria-controls="personalityEditor">Personality</button>
+          <button class="tab-button" onclick="window.switchTab('scenario')" role="tab" aria-selected="false" aria-controls="scenarioEditor">Scenario</button>
+          <button class="tab-button" onclick="window.switchTab('initialMessage')" role="tab" aria-selected="false" aria-controls="initialMessageEditor">Init Msg</button>
         </div>
         <div style="display: flex; gap: 8px;">
           <button class="pill-button small" onclick="document.getElementById('personalityInput').click()">Load Personality</button>
@@ -1262,6 +1262,12 @@
   <div id="scriptLoaderModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 300; display: flex; align-items: center; justify-content: center;">
     <div style="background: var(--bg-elevated); padding: 20px; border-radius: var(--radius-lg); width: 600px; max-width: 90%; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 16px;">
       <div class="section-title">Script Loader</div>
+      <div style="padding: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); border-radius: var(--radius-md); margin-bottom: 8px;">
+        <strong style="color: var(--danger);">⚠️ Security Warning:</strong>
+        <div style="font-size: 11px; margin-top: 4px; color: var(--text-muted);">
+          Only load scripts from trusted sources you created yourself. Loading untrusted scripts can execute malicious code.
+        </div>
+      </div>
       <div class="form-help">Add multiple scripts. Top runs first. Primary determines save filename/template.</div>
       
       <div id="scriptLoaderList" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border-subtle); padding: 8px; border-radius: var(--radius-md); background: rgba(0,0,0,0.2); min-height: 100px;">
@@ -1376,11 +1382,31 @@
       "use strict";
 
       // --------------------------------------------------------------------------
-      // v15 emotion set (as defined in AURA+v15 docs)
+      // Constants - v15 emotion set (as defined in AURA+v15 docs)
       // --------------------------------------------------------------------------
       var EMOTIONS = ["ANGER", "JOY", "SADNESS", "FEAR", "ROMANCE", "NEUTRAL"];
       var EROS_INTENSITIES = ["platonic", "tension", "romance", "physical", "passion", "explicit", "conflict", "aftercare"];
       var INTENTS = ["question", "disclosure", "command", "promise", "conflict", "smalltalk", "meta", "narrative"];
+
+      // UI Constants
+      var TOAST_DURATION = 3000; // milliseconds
+      var TOAST_FADE_DURATION = 300; // milliseconds
+      var SCROLL_DELAY = 50; // milliseconds
+      var GRAPH_RENDER_DELAY = 50; // milliseconds
+      var GRAPH_RESIZE_DELAY = 300; // milliseconds (longer for resize operations)
+      var REFOCUS_DELAY = 50; // milliseconds
+
+      // Validation Limits
+      var MAX_EMOTION_GATES = 2;
+      var MAX_EROS_GATES = 2;
+      var MAX_INTENT_GATES = 1;
+
+      // Graph Physics Constants
+      var GRAPH_REPULSION_FORCE = 10000;
+      var GRAPH_REPULSION_MULTIPLIER = 0.5;
+      var GRAPH_CENTER_GRAVITY = 0.005;
+      var GRAPH_LINK_STIFFNESS = 0.05;
+      var GRAPH_DRAG = 0.9;
 
       // --------------------------------------------------------------------------
       // App State
@@ -1400,10 +1426,21 @@
       // --------------------------------------------------------------------------
       // Utilities
       // --------------------------------------------------------------------------
+
+      /**
+       * Generate a unique ID with a prefix
+       * @param {string} prefix - The prefix for the ID
+       * @returns {string} A unique identifier
+       */
       function id(prefix) {
         return prefix + "_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
       }
 
+      /**
+       * Escape HTML special characters to prevent XSS attacks
+       * @param {*} s - The string to escape
+       * @returns {string} HTML-safe string
+       */
       function escHtml(s) {
         return (s == null ? "" : String(s))
           .replace(/&/g, "&amp;")
@@ -1413,12 +1450,22 @@
           .replace(/'/g, "&#39;");
       }
 
+      /**
+       * Convert value to array, ensuring consistent array output
+       * @param {*} v - Value to convert
+       * @returns {Array} Array representation of the value
+       */
       function toArray(v) {
         if (!v) return [];
         if (Array.isArray(v)) return v.slice();
         return [v];
       }
 
+      /**
+       * Split comma-separated text into trimmed array
+       * @param {string} text - Comma-separated text
+       * @returns {Array<string>} Array of trimmed non-empty strings
+       */
       function splitCsv(text) {
         if (!text) return [];
         return String(text)
@@ -1427,6 +1474,11 @@
           .filter(Boolean);
       }
 
+      /**
+       * Join array into comma-separated string
+       * @param {Array} arr - Array to join
+       * @returns {string} Comma-separated string
+       */
       function joinCsv(arr) {
         if (!arr || !arr.length) return "";
         return arr.join(", ");
@@ -1559,21 +1611,33 @@
         document.getElementById(outputId).innerText = words + " words / ~" + tokens + " tokens";
       };
 
-      window.showToast = function(msg, type = 'info') {
-        let container = document.querySelector('.toast-container');
+      /**
+       * Display a toast notification to the user
+       * @param {string} msg - The message to display
+       * @param {string} type - The type of toast: 'info', 'success', 'error'
+       */
+      window.showToast = function(msg, type) {
+        type = type || 'info';
+        var container = document.querySelector('.toast-container');
         if (!container) {
           container = document.createElement('div');
           container.className = 'toast-container';
           document.body.appendChild(container);
         }
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.innerText = msg;
+        var toast = document.createElement('div');
+        toast.className = 'toast ' + type;
+        toast.textContent = msg; // Use textContent instead of innerText for security
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'polite');
         container.appendChild(toast);
-        setTimeout(() => {
-          toast.style.animation = 'fadeOut 0.3s forwards';
-          setTimeout(() => toast.remove(), 300);
-        }, 3000);
+        setTimeout(function() {
+          toast.style.animation = 'fadeOut ' + (TOAST_FADE_DURATION / 1000) + 's forwards';
+          setTimeout(function() {
+            if (toast.parentNode) {
+              toast.parentNode.removeChild(toast);
+            }
+          }, TOAST_FADE_DURATION);
+        }, TOAST_DURATION);
       };
 
       window.saveApiKey = function() {
@@ -1643,7 +1707,7 @@
         } else if (tab === 'graph') {
           graph.classList.remove("hidden");
           btns[2].classList.add("active");
-          setTimeout(window.renderGraph, 50);
+          setTimeout(window.renderGraph, GRAPH_RENDER_DELAY);
         } else if (tab === 'laboratory') {
           lab.classList.remove("hidden");
           btns[3].classList.add("active");
@@ -1790,7 +1854,7 @@
 
           // If graph is visible, resize it
           if (!document.getElementById('graphView').classList.contains('hidden')) {
-            setTimeout(window.renderGraph, 300);
+            setTimeout(window.renderGraph, GRAPH_RESIZE_DELAY);
           }
         }
       };
@@ -1954,19 +2018,25 @@
             }
         };
 
+        // Execute active scripts
+        // WARNING: Script execution uses dynamic code evaluation
+        // Only load scripts from trusted sources
         if (STATE.activeScripts && STATE.activeScripts.length > 0) {
             STATE.activeScripts.forEach(function(s) {
                 try {
                     var initialScen = mockContext.character.scenario;
-                    // Execute script in a sandbox-ish way
-                    new Function('context', s.content)(mockContext);
-                    
+                    // Execute script in a sandboxed context
+                    // eslint-disable-next-line no-new-func
+                    var scriptFunc = new Function('context', s.content);
+                    scriptFunc(mockContext);
+
+                    // Track changes made by the script
                     if (mockContext.character.scenario !== initialScen) {
                         var diff = mockContext.character.scenario.substring(initialScen.length);
                         scriptInjections.push({ name: s.name, diff: diff });
                     }
                 } catch (e) {
-                    console.error("Error running script " + s.name, e);
+                    console.error("Error running script '" + s.name + "':", e);
                     scriptInjections.push({ name: s.name, error: e.message });
                 }
             });
@@ -2853,86 +2923,134 @@
         extractGlobal("initial", "initialMessageTextarea", "aura_global_initial_message");
 
         // ENTITY_DB
+        // WARNING: Using eval() for parsing JavaScript object literals
+        // Only use this with trusted files that you created yourself
         var entIdx = txt.indexOf("const ENTITY_DB = {");
         if (entIdx >= 0) {
           var entStart = txt.indexOf("{", entIdx);
           var entEnd = findMatchingBracket(txt, entStart, "{", "}");
           if (entEnd >= 0) {
             var entBlock = txt.substring(entStart, entEnd + 1);
-            var ENTITY_DB = eval("(" + entBlock + ")");
-            for (var name in ENTITY_DB) {
-              if (!Object.prototype.hasOwnProperty.call(ENTITY_DB, name)) continue;
-              var meta = ENTITY_DB[name] || {};
-              var basePersonality = "";
-              if (meta.lore && meta.lore.length && meta.lore[0] && meta.lore[0].personality != null) {
-                basePersonality = meta.lore[0].personality;
+            try {
+              // eslint-disable-next-line no-eval
+              var ENTITY_DB = eval("(" + entBlock + ")");
+
+              // Validate that ENTITY_DB is an object
+              if (typeof ENTITY_DB !== 'object' || ENTITY_DB === null || Array.isArray(ENTITY_DB)) {
+                throw new Error("ENTITY_DB must be an object");
               }
-              STATE.data.characters.push({
-                id: id("char"),
-                key: name,
-                gender: meta.gender || "N",
-                aliases: toArray(meta.aliases).filter(Boolean),
-                personality: basePersonality || ""
-              });
+
+              for (var name in ENTITY_DB) {
+                if (!Object.prototype.hasOwnProperty.call(ENTITY_DB, name)) continue;
+                var meta = ENTITY_DB[name] || {};
+                var basePersonality = "";
+                if (meta.lore && meta.lore.length && meta.lore[0] && meta.lore[0].personality != null) {
+                  basePersonality = meta.lore[0].personality;
+                }
+                STATE.data.characters.push({
+                  id: id("char"),
+                  key: String(name), // Sanitize key
+                  gender: meta.gender || "N",
+                  aliases: toArray(meta.aliases).filter(Boolean),
+                  personality: basePersonality || ""
+                });
+              }
+            } catch (err) {
+              console.error("Error parsing ENTITY_DB:", err);
+              window.showToast("Error parsing ENTITY_DB: " + err.message, "error");
             }
           }
         }
 
         // RELATIONSHIP_DB
+        // WARNING: Using eval() for parsing JavaScript array literals
+        // Only use this with trusted files that you created yourself
         var relIdx = txt.indexOf("const RELATIONSHIP_DB = [");
         if (relIdx >= 0) {
           var relStart = txt.indexOf("[", relIdx);
           var relEnd = findMatchingBracket(txt, relStart, "[", "]");
           if (relEnd >= 0) {
             var relBlock = txt.substring(relStart, relEnd + 1);
-            var RELATIONSHIP_DB = eval(relBlock);
-            for (var i = 0; i < RELATIONSHIP_DB.length; i++) {
-              var r = RELATIONSHIP_DB[i] || {};
-              STATE.data.pairs.push({
-                id: id("pair"),
-                pair: r.pair || ["", ""],
-                requireTags: r.requireTags || r.andAll || r.andAny || [],
-                injection: r.injection || r.scenario || "",
-                group: r.group || ""
-              });
+            try {
+              // eslint-disable-next-line no-eval
+              var RELATIONSHIP_DB = eval(relBlock);
+
+              // Validate that RELATIONSHIP_DB is an array
+              if (!Array.isArray(RELATIONSHIP_DB)) {
+                throw new Error("RELATIONSHIP_DB must be an array");
+              }
+
+              for (var i = 0; i < RELATIONSHIP_DB.length; i++) {
+                var r = RELATIONSHIP_DB[i] || {};
+                STATE.data.pairs.push({
+                  id: id("pair"),
+                  pair: r.pair || ["", ""],
+                  requireTags: r.requireTags || r.andAll || r.andAny || [],
+                  injection: r.injection || r.scenario || "",
+                  group: r.group || ""
+                });
+              }
+            } catch (err) {
+              console.error("Error parsing RELATIONSHIP_DB:", err);
+              window.showToast("Error parsing RELATIONSHIP_DB: " + err.message, "error");
             }
           }
         }
 
         // DYNAMIC_LORE
+        // WARNING: Using eval() for parsing JavaScript array literals
+        // Only use this with trusted files that you created yourself
         var loreIdx = txt.indexOf("const DYNAMIC_LORE = [");
         if (loreIdx >= 0) {
           var loreStart = txt.indexOf("[", loreIdx);
           var loreEnd = findMatchingBracket(txt, loreStart, "[", "]");
           if (loreEnd >= 0) {
             var loreBlock = txt.substring(loreStart, loreEnd + 1);
-            var DYNAMIC_LORE = eval(loreBlock);
-            for (var j = 0; j < DYNAMIC_LORE.length; j++) {
-              var e = DYNAMIC_LORE[j] || {};
-              var entry = inflateLoreFromImport(e);
-              STATE.data.dynamiclore.push(entry);
+            try {
+              // eslint-disable-next-line no-eval
+              var DYNAMIC_LORE = eval(loreBlock);
+
+              // Validate that DYNAMIC_LORE is an array
+              if (!Array.isArray(DYNAMIC_LORE)) {
+                throw new Error("DYNAMIC_LORE must be an array");
+              }
+
+              for (var j = 0; j < DYNAMIC_LORE.length; j++) {
+                var e = DYNAMIC_LORE[j] || {};
+                var entry = inflateLoreFromImport(e);
+                STATE.data.dynamiclore.push(entry);
+              }
+            } catch (err) {
+              console.error("Error parsing DYNAMIC_LORE:", err);
+              window.showToast("Error parsing DYNAMIC_LORE: " + err.message, "error");
             }
           }
         }
 
         // addEntry parsing (robust)
+        // WARNING: Using eval() for parsing JavaScript object literals
+        // Only use this with trusted files that you created yourself
         var searchIdx = 0;
         while (true) {
           var start = txt.indexOf("addEntry(", searchIdx);
           if (start === -1) break;
-          
+
           var openParen = start + 8;
           var end = findMatchingBracket(txt, openParen, '(', ')');
-          
+
           if (end !== -1) {
             var entryCode = txt.substring(openParen + 1, end);
             try {
+              // eslint-disable-next-line no-eval
               var entry = eval('(' + entryCode + ')');
-              if (entry) {
+              if (entry && typeof entry === 'object') {
                 STATE.data.dynamiclore.push(inflateLoreFromImport(entry));
+              } else {
+                console.warn("Invalid entry object at position " + start);
               }
             } catch (e) {
-              console.error("Could not parse addEntry at " + start, e);
+              console.error("Could not parse addEntry at position " + start + ":", e);
+              window.showToast("Error parsing addEntry: " + e.message, "error");
             }
             searchIdx = end + 1;
           } else {
@@ -3043,7 +3161,7 @@
           setTimeout(function() {
             var activeEl = list.querySelector(".entry-item.active");
             if (activeEl) activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          }, 50);
+          }, SCROLL_DELAY);
         }
       }
 
@@ -3497,16 +3615,16 @@
             }
         });
 
-        // Limits
-        checkLimit('andAllEmotion', 2, 'Emotion');
-        checkLimit('notAnyEmotion', 2, 'Emotion');
-        checkLimit('notAllEmotion', 2, 'Emotion');
-        checkLimit('andAllEros', 2, 'Eros');
-        checkLimit('notAnyEros', 2, 'Eros');
-        checkLimit('notAllEros', 2, 'Eros');
-        checkLimit('andAllIntent', 1, 'Intent');
-        checkLimit('notAnyIntent', 1, 'Intent');
-        checkLimit('notAllIntent', 1, 'Intent');
+        // Limits (using defined constants)
+        checkLimit('andAllEmotion', MAX_EMOTION_GATES, 'Emotion');
+        checkLimit('notAnyEmotion', MAX_EMOTION_GATES, 'Emotion');
+        checkLimit('notAllEmotion', MAX_EMOTION_GATES, 'Emotion');
+        checkLimit('andAllEros', MAX_EROS_GATES, 'Eros');
+        checkLimit('notAnyEros', MAX_EROS_GATES, 'Eros');
+        checkLimit('notAllEros', MAX_EROS_GATES, 'Eros');
+        checkLimit('andAllIntent', MAX_INTENT_GATES, 'Intent');
+        checkLimit('notAnyIntent', MAX_INTENT_GATES, 'Intent');
+        checkLimit('notAllIntent', MAX_INTENT_GATES, 'Intent');
 
         return errors;
       }
@@ -3766,124 +3884,87 @@
         );
       }
 
-      window._emoAdd = function (field, selectId) {
+      /**
+       * Generic function to add a gate value (emotion/eros/intent)
+       * @param {string} field - The field name to update
+       * @param {string} selectId - The select element ID
+       * @param {Function} caseTransform - Function to transform case (toUpperCase or toLowerCase)
+       */
+      function addGateValue(field, selectId, caseTransform) {
         var el = document.getElementById(selectId);
         if (!el) return;
-        var v = (el.value || "").toUpperCase();
+        var v = caseTransform((el.value || ""));
         if (!v) return;
 
         var e = curr();
         if (!e) return;
 
-        var arr = toArray(e[field]).map(function (x) { return String(x).toUpperCase(); });
+        var arr = toArray(e[field]).map(function (x) { return caseTransform(String(x)); });
         if (arr.indexOf(v) < 0) arr.push(v);
 
         var patch = {};
         patch[field] = arr;
         save(patch);
 
-        // reset selector
+        // Reset selector
         el.value = "";
 
-        // refresh UI so pills appear immediately
-        try { renderEditor(); } catch (e) { }
+        // Refresh UI so pills appear immediately
+        try { renderEditor(); } catch (err) {
+          console.error("Error rendering editor:", err);
+        }
+      }
+
+      /**
+       * Generic function to remove a gate value (emotion/eros/intent)
+       * @param {string} field - The field name to update
+       * @param {string} v - The value to remove
+       * @param {Function} caseTransform - Function to transform case (toUpperCase or toLowerCase)
+       */
+      function removeGateValue(field, v, caseTransform) {
+        v = caseTransform(String(v || ""));
+        var e = curr();
+        if (!e) return;
+
+        var arr = toArray(e[field]).map(function (x) { return caseTransform(String(x)); });
+        var idx = arr.indexOf(v);
+        if (idx >= 0) arr.splice(idx, 1);
+
+        var patch = {};
+        patch[field] = arr;
+        save(patch);
+
+        // Refresh UI so pills update immediately
+        try { renderEditor(); } catch (err) {
+          console.error("Error rendering editor:", err);
+        }
+      }
+
+      // Emotion gates (uppercase)
+      window._emoAdd = function (field, selectId) {
+        addGateValue(field, selectId, function(s) { return s.toUpperCase(); });
       };
 
       window._emoRemove = function (field, v) {
-        v = String(v || "").toUpperCase();
-        var e = curr();
-        if (!e) return;
-
-        var arr = toArray(e[field]).map(function (x) { return String(x).toUpperCase(); });
-        var idx = arr.indexOf(v);
-        if (idx >= 0) arr.splice(idx, 1);
-
-        var patch = {};
-        patch[field] = arr;
-        save(patch);
-
-        // refresh UI so pills update immediately
-        try { renderEditor(); } catch (e) { }
+        removeGateValue(field, v, function(s) { return s.toUpperCase(); });
       };
 
+      // Eros gates (lowercase)
       window._erosAdd = function (field, selectId) {
-        var el = document.getElementById(selectId);
-        if (!el) return;
-        var v = (el.value || "").toLowerCase();
-        if (!v) return;
-
-        var e = curr();
-        if (!e) return;
-
-        var arr = toArray(e[field]).map(function (x) { return String(x).toLowerCase(); });
-        if (arr.indexOf(v) < 0) arr.push(v);
-
-        var patch = {};
-        patch[field] = arr;
-        save(patch);
-
-        // reset selector
-        el.value = "";
-
-        // refresh UI so pills appear immediately
-        try { renderEditor(); } catch (e) { }
+        addGateValue(field, selectId, function(s) { return s.toLowerCase(); });
       };
 
       window._erosRemove = function (field, v) {
-        v = String(v || "").toLowerCase();
-        var e = curr();
-        if (!e) return;
-
-        var arr = toArray(e[field]).map(function (x) { return String(x).toLowerCase(); });
-        var idx = arr.indexOf(v);
-        if (idx >= 0) arr.splice(idx, 1);
-
-        var patch = {};
-        patch[field] = arr;
-        save(patch);
-
-        // refresh UI so pills update immediately
-        try { renderEditor(); } catch (e) { }
+        removeGateValue(field, v, function(s) { return s.toLowerCase(); });
       };
 
+      // Intent gates (lowercase)
       window._intentAdd = function (field, selectId) {
-        var el = document.getElementById(selectId);
-        if (!el) return;
-        var v = (el.value || "").toLowerCase();
-        if (!v) return;
-
-        var e = curr();
-        if (!e) return;
-
-        var arr = toArray(e[field]).map(function (x) { return String(x).toLowerCase(); });
-        if (arr.indexOf(v) < 0) arr.push(v);
-
-        var patch = {};
-        patch[field] = arr;
-        save(patch);
-
-        // reset selector
-        el.value = "";
-
-        // refresh UI so pills appear immediately
-        try { renderEditor(); } catch (e) { }
+        addGateValue(field, selectId, function(s) { return s.toLowerCase(); });
       };
 
       window._intentRemove = function (field, v) {
-        v = String(v || "").toLowerCase();
-        var e = curr();
-        if (!e) return;
-
-        var arr = toArray(e[field]).map(function (x) { return String(x).toLowerCase(); });
-        var idx = arr.indexOf(v);
-        if (idx >= 0) arr.splice(idx, 1);
-
-        var patch = {};
-        patch[field] = arr;
-        save(patch);
-
-        // refresh UI so pills update immediately
-        try { renderEditor(); } catch (e) { }
+        removeGateValue(field, v, function(s) { return s.toLowerCase(); });
       };
 
       window._toggleLoreChar = function (name) {
@@ -4793,11 +4874,7 @@
       function gTick() {
         var searchTerm = document.getElementById('gSearchNode') ? document.getElementById('gSearchNode').value.toLowerCase().trim() : "";
 
-        // Physics
-        var k = 0.05; // repulsion const
-        var drag = 0.90;
-        
-        // Repulsion
+        // Repulsion forces between nodes
         for (var i=0; i<gNodes.length; i++) {
           var a = gNodes[i];
           for (var j=i+1; j<gNodes.length; j++) {
@@ -4805,30 +4882,31 @@
             var dx = b.x - a.x, dy = b.y - a.y;
             var d2 = dx*dx + dy*dy + 0.1;
             var d = Math.sqrt(d2);
-            var f = (10000 / d2) * 0.5;
+            var f = (GRAPH_REPULSION_FORCE / d2) * GRAPH_REPULSION_MULTIPLIER;
             var fx = (dx/d) * f, fy = (dy/d) * f;
             a.vx -= fx; a.vy -= fy;
             b.vx += fx; b.vy += fy;
           }
-          // Center gravity
-          a.vx -= a.x * 0.005; a.vy -= a.y * 0.005;
+          // Center gravity - pull nodes toward center
+          a.vx -= a.x * GRAPH_CENTER_GRAVITY;
+          a.vy -= a.y * GRAPH_CENTER_GRAVITY;
         }
 
-        // Links
+        // Spring forces for links
         gLinks.forEach(function(l) {
           var dx = l.t.x - l.s.x, dy = l.t.y - l.s.y;
           var d = Math.sqrt(dx*dx + dy*dy);
-          var f = (d - l.len) * 0.05;
+          var f = (d - l.len) * GRAPH_LINK_STIFFNESS;
           var fx = (dx/d) * f, fy = (dy/d) * f;
           l.s.vx += fx; l.s.vy += fy;
           l.t.vx -= fx; l.t.vy -= fy;
         });
 
-        // Update
+        // Update node positions with velocity damping
         gNodes.forEach(function(n) {
           if (n === gDrag.node) return;
           n.x += n.vx; n.y += n.vy;
-          n.vx *= drag; n.vy *= drag;
+          n.vx *= GRAPH_DRAG; n.vy *= GRAPH_DRAG;
         });
 
         // Draw
