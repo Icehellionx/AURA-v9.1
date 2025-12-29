@@ -2127,14 +2127,18 @@
             }
             STATE.lastSelectedId = entryId;
           } else if (event.shiftKey && STATE.lastSelectedId) {
-            // Shift+click: Select range
+            // Shift+click: Select range (including shifts in display order)
             var flatList = [];
-            var collectIds = function(entries) {
+            var collectIds = function(entries, includeShifts) {
               for (var i = 0; i < entries.length; i++) {
                 flatList.push(entries[i].id);
+                // Recursively add shifts if they exist and are being shown
+                if (includeShifts && entries[i].shifts && entries[i].shifts.length) {
+                  collectIds(entries[i].shifts, true);
+                }
               }
             };
-            collectIds(arr);
+            collectIds(arr, STATE.type === "dynamiclore");
 
             var startIdx = flatList.indexOf(STATE.lastSelectedId);
             var endIdx = flatList.indexOf(entryId);
@@ -2230,6 +2234,7 @@
         renderEditor();
         renderCode();
         autoSave(); // Auto-save after creating new entry
+        window.maybeRefreshGraph();
       };
 
       window.duplicate = function () {
@@ -2248,6 +2253,7 @@
         renderEditor();
         renderCode();
         autoSave(); // Auto-save after duplication
+        window.maybeRefreshGraph();
       };
 
       window.toggleFocusMode = function() {
@@ -2842,6 +2848,7 @@
           renderEditor();
           renderCode();
           autoSave(); // Auto-save after deletion
+          window.maybeRefreshGraph();
           window.showToast(deletedCount + " entr" + (deletedCount === 1 ? "y" : "ies") + " deleted", "success");
         }
       };
@@ -2923,6 +2930,7 @@
         renderList(true);
         renderEditor();
         renderCode();
+        window.maybeRefreshGraph();
       };
 
       // --------------------------------------------------------------------------
@@ -5484,6 +5492,14 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
         }
       };
 
+      // Helper to refresh graph if it's currently visible
+      window.maybeRefreshGraph = function() {
+        var graphView = document.getElementById('graphView');
+        if (graphView && !graphView.classList.contains('hidden')) {
+          window.renderGraph();
+        }
+      };
+
       window.renderGraph = function() {
         var cvs = document.getElementById('graphCanvas');
         var parent = document.getElementById('graphView');
@@ -5503,15 +5519,16 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
         cvs.height = parent.clientHeight;
         gCtx = cvs.getContext('2d');
         
-        // Build Data
+        // Build Data with better initial positioning
         gNodes = []; gLinks = [];
         var map = {};
+        var charNodes = [], pairNodes = [], loreNodes = [];
 
         // Characters
         if (showChar) {
           STATE.data.characters.forEach(function(c) {
-            var n = { id: c.id, label: c.key, type: 'char', data: c, x: Math.random()*cvs.width, y: Math.random()*cvs.height, vx:0, vy:0, r: 15, color: '#a855f7' };
-            gNodes.push(n);
+            var n = { id: c.id, label: c.key, type: 'char', data: c, x: 0, y: 0, vx:0, vy:0, r: 15, color: '#a855f7' };
+            charNodes.push(n);
             map[c.key] = n; // map by key for linking
           });
         }
@@ -5521,8 +5538,8 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
           STATE.data.pairs.forEach(function(p) {
             if (groupFilter && (p.group||"").toLowerCase().indexOf(groupFilter) === -1) return;
             var label = (p.pair||[]).join('+');
-            var n = { id: p.id, label: label, type: 'pair', data: p, x: Math.random()*cvs.width, y: Math.random()*cvs.height, vx:0, vy:0, r: 10, color: '#f59e0b' };
-            gNodes.push(n);
+            var n = { id: p.id, label: label, type: 'pair', data: p, x: 0, y: 0, vx:0, vy:0, r: 10, color: '#f59e0b' };
+            pairNodes.push(n);
             if (p.pair) {
               p.pair.forEach(function(k) { if(map[k]) gLinks.push({ s: n, t: map[k], len: 80 }); });
             }
@@ -5537,8 +5554,8 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
           STATE.data.dynamiclore.forEach(function(l) {
             if (groupFilter && (l.group||"").toLowerCase().indexOf(groupFilter) === -1) return;
 
-            var n = { id: l.id, label: l.id_name || 'Lore', type: 'lore', data: l, x: Math.random()*cvs.width, y: Math.random()*cvs.height, vx:0, vy:0, r: 12, color: '#4f46e5' };
-            gNodes.push(n);
+            var n = { id: l.id, label: l.id_name || 'Lore', type: 'lore', data: l, x: 0, y: 0, vx:0, vy:0, r: 12, color: '#4f46e5' };
+            loreNodes.push(n);
             map[l.id] = n; // map by ID for shift parent linking
 
             // Index keywords
@@ -5560,63 +5577,6 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
             // Link to chars
             if (l.characters) {
               l.characters.forEach(function(k) { if(map[k]) gLinks.push({ s: n, t: map[k], len: 100 }); });
-            }
-
-            // Recursive function to handle shifts at any depth
-            var processShifts = function(shifts, parentNode, depth) {
-              if (!showShift || !shifts || !shifts.length) return;
-
-              shifts.forEach(function(s) {
-                var offset = 20 + (depth * 10);
-                var sn = {
-                  id: s.id,
-                  parentId: parentNode.id,
-                  label: s.id_name || 'Shift',
-                  type: 'shift',
-                  data: s,
-                  x: parentNode.x + (Math.random()-0.5)*offset,
-                  y: parentNode.y + (Math.random()-0.5)*offset,
-                  vx:0, vy:0,
-                  r: Math.max(6, 8 - depth),
-                  color: depth === 1 ? '#22c55e' : '#10b981'
-                };
-                gNodes.push(sn);
-                map[s.id] = sn; // map shift by ID
-
-                // Link to parent
-                gLinks.push({ s: sn, t: parentNode, len: 40 + (depth * 10) });
-
-                // Shift char links
-                if (s.characters) {
-                  s.characters.forEach(function(k) { if(map[k]) gLinks.push({ s: sn, t: map[k], len: 100 }); });
-                }
-
-                // Index shift keywords
-                if (s.keywords && s.keywords.length) {
-                  s.keywords.forEach(function(kw) {
-                    if (!kw) return;
-                    var kwLower = String(kw).toLowerCase();
-                    if (!keywordMap[kwLower]) keywordMap[kwLower] = [];
-                    keywordMap[kwLower].push(sn);
-                  });
-                }
-
-                // Index shift tag
-                if (s.tag) {
-                  var tagLower = String(s.tag).toLowerCase();
-                  tagMap[tagLower] = sn;
-                }
-
-                // Recursively process nested shifts
-                if (s.shifts && s.shifts.length) {
-                  processShifts(s.shifts, sn, depth + 1);
-                }
-              });
-            };
-
-            // Process first-level shifts
-            if (l.shifts) {
-              processShifts(l.shifts, n, 1);
             }
           });
         }
@@ -5649,6 +5609,94 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
                 gLinks.push({ s: n, t: tagMap[tagLower], len: 120, style: 'dashed' });
               }
             });
+          }
+        });
+
+        // Position nodes in organized circles by type
+        var cx = cvs.width / 2;
+        var cy = cvs.height / 2;
+        var baseRadius = Math.min(cvs.width, cvs.height) * 0.3;
+
+        // Position characters in outer circle
+        charNodes.forEach(function(n, i) {
+          var angle = (i / charNodes.length) * Math.PI * 2;
+          n.x = cx + Math.cos(angle) * baseRadius * 1.2;
+          n.y = cy + Math.sin(angle) * baseRadius * 1.2;
+          gNodes.push(n);
+        });
+
+        // Position pairs in middle circle
+        pairNodes.forEach(function(n, i) {
+          var angle = (i / pairNodes.length) * Math.PI * 2 + Math.PI / 6; // Offset by 30 degrees
+          n.x = cx + Math.cos(angle) * baseRadius * 0.7;
+          n.y = cy + Math.sin(angle) * baseRadius * 0.7;
+          gNodes.push(n);
+        });
+
+        // Position lore in inner circle
+        loreNodes.forEach(function(n, i) {
+          var angle = (i / loreNodes.length) * Math.PI * 2;
+          n.x = cx + Math.cos(angle) * baseRadius * 0.3;
+          n.y = cy + Math.sin(angle) * baseRadius * 0.3;
+          gNodes.push(n);
+        });
+
+        // Now process shifts AFTER parent lore nodes are positioned
+        var processShifts = function(shifts, parentNode, depth) {
+          if (!showShift || !shifts || !shifts.length) return;
+
+          shifts.forEach(function(s) {
+            var offset = 20 + (depth * 10);
+            var sn = {
+              id: s.id,
+              parentId: parentNode.id,
+              label: s.id_name || 'Shift',
+              type: 'shift',
+              data: s,
+              x: parentNode.x + (Math.random()-0.5)*offset,
+              y: parentNode.y + (Math.random()-0.5)*offset,
+              vx:0, vy:0,
+              r: Math.max(6, 8 - depth),
+              color: depth === 1 ? '#22c55e' : '#10b981'
+            };
+            gNodes.push(sn);
+            map[s.id] = sn; // map shift by ID
+
+            // Link to parent
+            gLinks.push({ s: sn, t: parentNode, len: 40 + (depth * 10) });
+
+            // Shift char links
+            if (s.characters) {
+              s.characters.forEach(function(k) { if(map[k]) gLinks.push({ s: sn, t: map[k], len: 100 }); });
+            }
+
+            // Index shift keywords
+            if (s.keywords && s.keywords.length) {
+              s.keywords.forEach(function(kw) {
+                if (!kw) return;
+                var kwLower = String(kw).toLowerCase();
+                if (!keywordMap[kwLower]) keywordMap[kwLower] = [];
+                keywordMap[kwLower].push(sn);
+              });
+            }
+
+            // Index shift tag
+            if (s.tag) {
+              var tagLower = String(s.tag).toLowerCase();
+              tagMap[tagLower] = sn;
+            }
+
+            // Recursively process nested shifts
+            if (s.shifts && s.shifts.length) {
+              processShifts(s.shifts, sn, depth + 1);
+            }
+          });
+        };
+
+        // Process all lore shifts now that parents are positioned
+        loreNodes.forEach(function(n) {
+          if (n.data.shifts && n.data.shifts.length) {
+            processShifts(n.data.shifts, n, 1);
           }
         });
 
