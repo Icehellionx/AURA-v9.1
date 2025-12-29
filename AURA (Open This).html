@@ -5529,33 +5529,128 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
           });
         }
 
-        // Lore
+        // Lore - Build keyword/tag index first
+        var keywordMap = {}; // keyword -> [nodes]
+        var tagMap = {}; // tag -> node
+
         if (showLore) {
           STATE.data.dynamiclore.forEach(function(l) {
             if (groupFilter && (l.group||"").toLowerCase().indexOf(groupFilter) === -1) return;
-            
+
             var n = { id: l.id, label: l.id_name || 'Lore', type: 'lore', data: l, x: Math.random()*cvs.width, y: Math.random()*cvs.height, vx:0, vy:0, r: 12, color: '#4f46e5' };
             gNodes.push(n);
-            
+            map[l.id] = n; // map by ID for shift parent linking
+
+            // Index keywords
+            if (l.keywords && l.keywords.length) {
+              l.keywords.forEach(function(kw) {
+                if (!kw) return;
+                var kwLower = String(kw).toLowerCase();
+                if (!keywordMap[kwLower]) keywordMap[kwLower] = [];
+                keywordMap[kwLower].push(n);
+              });
+            }
+
+            // Index tag
+            if (l.tag) {
+              var tagLower = String(l.tag).toLowerCase();
+              tagMap[tagLower] = n;
+            }
+
             // Link to chars
             if (l.characters) {
               l.characters.forEach(function(k) { if(map[k]) gLinks.push({ s: n, t: map[k], len: 100 }); });
             }
 
-            // Shifts
-            if (showShift && l.shifts) {
-              l.shifts.forEach(function(s) {
-                var sn = { id: s.id, parentId: l.id, label: s.id_name || 'Shift', type: 'shift', data: s, x: n.x + (Math.random()-0.5)*20, y: n.y + (Math.random()-0.5)*20, vx:0, vy:0, r: 8, color: '#22c55e' };
+            // Recursive function to handle shifts at any depth
+            var processShifts = function(shifts, parentNode, depth) {
+              if (!showShift || !shifts || !shifts.length) return;
+
+              shifts.forEach(function(s) {
+                var offset = 20 + (depth * 10);
+                var sn = {
+                  id: s.id,
+                  parentId: parentNode.id,
+                  label: s.id_name || 'Shift',
+                  type: 'shift',
+                  data: s,
+                  x: parentNode.x + (Math.random()-0.5)*offset,
+                  y: parentNode.y + (Math.random()-0.5)*offset,
+                  vx:0, vy:0,
+                  r: Math.max(6, 8 - depth),
+                  color: depth === 1 ? '#22c55e' : '#10b981'
+                };
                 gNodes.push(sn);
-                gLinks.push({ s: sn, t: n, len: 50 });
+                map[s.id] = sn; // map shift by ID
+
+                // Link to parent
+                gLinks.push({ s: sn, t: parentNode, len: 40 + (depth * 10) });
+
                 // Shift char links
                 if (s.characters) {
                   s.characters.forEach(function(k) { if(map[k]) gLinks.push({ s: sn, t: map[k], len: 100 }); });
                 }
+
+                // Index shift keywords
+                if (s.keywords && s.keywords.length) {
+                  s.keywords.forEach(function(kw) {
+                    if (!kw) return;
+                    var kwLower = String(kw).toLowerCase();
+                    if (!keywordMap[kwLower]) keywordMap[kwLower] = [];
+                    keywordMap[kwLower].push(sn);
+                  });
+                }
+
+                // Index shift tag
+                if (s.tag) {
+                  var tagLower = String(s.tag).toLowerCase();
+                  tagMap[tagLower] = sn;
+                }
+
+                // Recursively process nested shifts
+                if (s.shifts && s.shifts.length) {
+                  processShifts(s.shifts, sn, depth + 1);
+                }
               });
+            };
+
+            // Process first-level shifts
+            if (l.shifts) {
+              processShifts(l.shifts, n, 1);
             }
           });
         }
+
+        // Create trigger-based links
+        gNodes.forEach(function(n) {
+          if (n.data.triggers && n.data.triggers.length) {
+            n.data.triggers.forEach(function(trigger) {
+              if (!trigger) return;
+              var trigLower = String(trigger).toLowerCase();
+              // Link if trigger matches any keyword
+              if (keywordMap[trigLower]) {
+                keywordMap[trigLower].forEach(function(targetNode) {
+                  if (targetNode.id !== n.id) { // Don't link to self
+                    gLinks.push({ s: n, t: targetNode, len: 120, style: 'dashed' });
+                  }
+                });
+              }
+            });
+          }
+        });
+
+        // Create tag-based links for pairs
+        gNodes.forEach(function(n) {
+          if (n.type === 'pair' && n.data.requireTags && n.data.requireTags.length) {
+            n.data.requireTags.forEach(function(tag) {
+              if (!tag) return;
+              var tagLower = String(tag).toLowerCase();
+              if (tagMap[tagLower]) {
+                gLinks.push({ s: n, t: tagMap[tagLower], len: 120, style: 'dashed' });
+              }
+            });
+          }
+        });
 
         // Center camera
         gCam.x = cvs.width / 2;
@@ -5713,16 +5808,27 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
         gCtx.translate(gCam.x, gCam.y);
         gCtx.scale(gCam.z, gCam.z);
 
-        gCtx.strokeStyle = '#374151'; gCtx.lineWidth = 2;
-        gLinks.forEach(function(l) { 
+        gCtx.lineWidth = 2;
+        gLinks.forEach(function(l) {
           var dim = false;
           if (searchTerm) {
              if (l.s.label.toLowerCase().indexOf(searchTerm) === -1 && l.t.label.toLowerCase().indexOf(searchTerm) === -1) dim = true;
           }
-          gCtx.globalAlpha = dim ? 0.05 : 1;
-          gCtx.beginPath(); gCtx.moveTo(l.s.x, l.s.y); gCtx.lineTo(l.t.x, l.t.y); gCtx.stroke(); 
+
+          // Use different styles for different link types
+          if (l.style === 'dashed') {
+            gCtx.strokeStyle = '#6366f1'; // Indigo for trigger/tag links
+            gCtx.setLineDash([5, 5]);
+          } else {
+            gCtx.strokeStyle = '#374151'; // Gray for structural links
+            gCtx.setLineDash([]);
+          }
+
+          gCtx.globalAlpha = dim ? 0.05 : (l.style === 'dashed' ? 0.6 : 1);
+          gCtx.beginPath(); gCtx.moveTo(l.s.x, l.s.y); gCtx.lineTo(l.t.x, l.t.y); gCtx.stroke();
           gCtx.globalAlpha = 1;
         });
+        gCtx.setLineDash([]); // Reset line dash
 
         gNodes.forEach(function(n) {
           var isMatch = !searchTerm || n.label.toLowerCase().indexOf(searchTerm) !== -1;
