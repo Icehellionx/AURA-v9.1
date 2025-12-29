@@ -968,27 +968,29 @@
         </div>
       </div>
 
-      <div class="data-type-selector">
-        <button class="data-type-btn active" onclick="window.switchType('characters', event)">Chars</button>
-        <button class="data-type-btn" onclick="window.switchType('pairs', event)">Pairs</button>
-        <button class="data-type-btn" onclick="window.switchType('dynamiclore', event)">Lore</button>
+      <div class="data-type-selector" role="tablist" aria-label="Data type selector">
+        <button class="data-type-btn active" onclick="window.switchType('characters', event)" role="tab" aria-selected="true" aria-controls="entriesList">Chars</button>
+        <button class="data-type-btn" onclick="window.switchType('pairs', event)" role="tab" aria-selected="false" aria-controls="entriesList">Pairs</button>
+        <button class="data-type-btn" onclick="window.switchType('dynamiclore', event)" role="tab" aria-selected="false" aria-controls="entriesList">Lore</button>
       </div>
 
       <div class="entries-list" id="entriesList"></div>
 
       <div class="sidebar-footer">
-        <button type="button" class="pill-button small" onclick="window.createNew()">+ New</button>
-        <button type="button" class="pill-button small" onclick="window.duplicate()">Dup</button>
-        <button type="button" class="pill-button small" onclick="window.openDupModal()">Dup To...</button>
-        <button type="button" class="pill-button danger small" onclick="window.deleteEntry()">Del</button>
+        <button type="button" class="pill-button small" onclick="window.createNew()" title="Create new entry (Ctrl+N)">+ New</button>
+        <button type="button" class="pill-button small" onclick="window.duplicate()" title="Duplicate selected entry (Ctrl+D)">Duplicate</button>
+        <button type="button" class="pill-button small" onclick="window.openDupModal()" title="Duplicate entry to another type">Duplicate To...</button>
+        <button type="button" class="pill-button danger small" onclick="window.deleteEntry()" title="Delete selected entry (Delete key)">🗑️ Delete</button>
         <button type="button" class="pill-button small" onclick="window.addShift()" id="btnAddShift"
-          style="display:none;">+ Shift</button>
-        <button type="button" class="pill-button small" onclick="window.openAiEntryModal()">+ AI Entry</button>
-        <button type="button" class="pill-button small" onclick="window.openAiEditModal()">AI Edit</button>
-        <button type="button" class="pill-button small" onclick="window.openSearchReplaceModal()">S/R</button>
-        <button type="button" class="pill-button small" onclick="window.validateAll()">Validate</button>
+          style="display:none;" title="Add a shift variant to this lore entry">+ Shift</button>
+        <button type="button" class="pill-button small" onclick="window.openAiEntryModal()" title="Generate new entry with AI">+ AI Entry</button>
+        <button type="button" class="pill-button small" onclick="window.openAiEditModal()" title="Edit current entry with AI">AI Edit</button>
+        <button type="button" class="pill-button small" onclick="window.openSearchReplaceModal()" title="Find and replace across all entries (Ctrl+H)">Find & Replace</button>
+        <button type="button" class="pill-button small" onclick="window.validateAll()" title="Check for logical contradictions">Validate</button>
+        <button type="button" class="pill-button small" onclick="window.runHealthCheck()" title="Scan data for common issues">Health Check</button>
+        <button type="button" class="pill-button small danger" onclick="window.openResetAllModal()" title="Reset all values (clears local data)">Reset</button>
         <button type="button" class="pill-button small" onclick="window.openAiShiftModal()" id="btnAddAiShift"
-          style="display:none;">+ AI Shift</button>
+          style="display:none;" title="Generate shift variant with AI">+ AI Shift</button>
       </div>
     </aside>
 
@@ -1002,28 +1004,32 @@
           <input type="password" id="apiKey" name="password" class="form-input small" placeholder="Enter API Key (Gemini or OpenRouter)" autocomplete="current-password">
           <button type="submit" class="pill-button small">Save</button>
         </form>
-        <div class="tab-toggle">
-          <button class="tab-button active" onclick="window.switchTab('visual')">Visual</button>
-          <button class="tab-button" onclick="window.switchTab('code')">Code</button>
-          <button class="tab-button" onclick="window.switchTab('graph')">Graph</button>
-          <button class="tab-button" onclick="window.switchTab('laboratory')">Laboratory</button>
-          <button class="tab-button" onclick="window.switchTab('personality')">Personality</button>
-          <button class="tab-button" onclick="window.switchTab('scenario')">Scenario</button>
-          <button class="tab-button" onclick="window.switchTab('initialMessage')">Init Msg</button>
+        <div class="tab-toggle" role="tablist" aria-label="Main view tabs">
+          <button class="tab-button active" onclick="window.switchTab('visual')" role="tab" aria-selected="true" aria-controls="visualEditor">Visual</button>
+          <button class="tab-button" onclick="window.switchTab('code')" role="tab" aria-selected="false" aria-controls="codeView">Code</button>
+          <button class="tab-button" onclick="window.switchTab('graph')" role="tab" aria-selected="false" aria-controls="graphView">Graph</button>
+          <button class="tab-button" onclick="window.switchTab('laboratory')" role="tab" aria-selected="false" aria-controls="laboratoryView">Laboratory</button>
+          <button class="tab-button" onclick="window.switchTab('personality')" role="tab" aria-selected="false" aria-controls="personalityEditor">Personality</button>
+          <button class="tab-button" onclick="window.switchTab('scenario')" role="tab" aria-selected="false" aria-controls="scenarioEditor">Scenario</button>
+          <button class="tab-button" onclick="window.switchTab('initialMessage')" role="tab" aria-selected="false" aria-controls="initialMessageEditor">Init Msg</button>
         </div>
         <div style="display: flex; gap: 8px;">
-          <button class="pill-button small" onclick="document.getElementById('personalityInput').click()">Load Personality</button>
-          <button class="pill-button small" onclick="document.getElementById('scenarioInput').click()">Load Scenario</button>
-          <button class="pill-button small" onclick="document.getElementById('initialMessageInput').click()">Load
-            Init Msg</button>
-          <button class="pill-button small" onclick="window.importData()">Load Script</button>
-          <button id="btn_save_file" class="pill-button small success" onclick="window.exportData()">Save Script to File</button>
+          <button class="pill-button small" onclick="document.getElementById('personalityInput').click()" title="Import personality from text file">Load Personality</button>
+          <button class="pill-button small" onclick="document.getElementById('scenarioInput').click()" title="Import scenario from text file">Load Scenario</button>
+          <button class="pill-button small" onclick="document.getElementById('initialMessageInput').click()" title="Import initial message from text file">Load Initial Message</button>
+          <button class="pill-button small" onclick="window.importData()" title="Import database from .js script file">Load Script</button>
+          <button id="btn_save_file" class="pill-button small success" onclick="window.exportData()" title="Export database to .js script file (Ctrl+S)">💾 Save Script to File</button>
+        </div>
+        <div id="autoSaveStatus" style="margin-left: 12px; font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+          <span id="saveIndicator">●</span>
+          <span id="saveText">Auto-saved</span>
         </div>
         <div style="display:flex; flex-direction:column; gap:4px; margin-left:8px;">
-          <button class="pill-button small" style="border-color: var(--accent); padding: 2px 8px; font-size:10px;" onclick="window.startTutorial()">Tutorial</button>
-          <button class="pill-button small" style="border-color: var(--accent); padding: 2px 8px; font-size:10px;" onclick="window.startAdvancedTutorial()">Advanced Tutorial</button>
-          <button class="pill-button small" style="border-color: var(--accent); padding: 2px 8px; font-size:10px;" onclick="window.startWalkthrough()">Walk Through</button>
+          <button class="pill-button small" style="border-color: var(--accent); padding: 2px 8px; font-size:10px;" onclick="window.startTutorial()" title="Start basic tutorial">Tutorial</button>
+          <button class="pill-button small" style="border-color: var(--accent); padding: 2px 8px; font-size:10px;" onclick="window.startAdvancedTutorial()" title="Learn all features in detail">Advanced Tutorial</button>
+          <button class="pill-button small" style="border-color: var(--accent); padding: 2px 8px; font-size:10px;" onclick="window.startWalkthrough()" title="Step-by-step guided creation">Walk Through</button>
         </div>
+        <button class="pill-button small" onclick="window.showKeyboardShortcuts()" title="View keyboard shortcuts (Ctrl+?)" style="margin-left: 8px;">⌨️</button>
       </header>
 
       <div class="main-content">
@@ -1262,6 +1268,12 @@
   <div id="scriptLoaderModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 300; display: flex; align-items: center; justify-content: center;">
     <div style="background: var(--bg-elevated); padding: 20px; border-radius: var(--radius-lg); width: 600px; max-width: 90%; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 16px;">
       <div class="section-title">Script Loader</div>
+      <div style="padding: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); border-radius: var(--radius-md); margin-bottom: 8px;">
+        <strong style="color: var(--danger);">⚠️ Security Warning:</strong>
+        <div style="font-size: 11px; margin-top: 4px; color: var(--text-muted);">
+          Only load scripts from trusted sources you created yourself. Loading untrusted scripts can execute malicious code.
+        </div>
+      </div>
       <div class="form-help">Add multiple scripts. Top runs first. Primary determines save filename/template.</div>
       
       <div id="scriptLoaderList" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border-subtle); padding: 8px; border-radius: var(--radius-md); background: rgba(0,0,0,0.2); min-height: 100px;">
@@ -1274,7 +1286,7 @@
           <button class="pill-button small danger" onclick="window.clearScriptLoader()">Clear All</button>
         </div>
         <div style="display: flex; gap: 8px;">
-          <button class="pill-button" onclick="document.getElementById('scriptLoaderModal').classList.add('hidden')">Cancel</button>
+          <button class="pill-button" onclick="(window._closeModalById?window._closeModalById('scriptLoaderModal'):document.getElementById('scriptLoaderModal').classList.add('hidden'))">Cancel</button>
           <button class="pill-button" onclick="window.processLoadedScripts('append')">Merge</button>
           <button class="pill-button success" onclick="window.processLoadedScripts('overwrite')">Load</button>
         </div>
@@ -1311,7 +1323,7 @@
         <label style="font-size: 12px;"><input type="checkbox" id="srCaseSensitive"> Case Sensitive</label>
       </div>
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
-        <button class="pill-button" onclick="document.getElementById('searchReplaceModal').classList.add('hidden')">Cancel</button>
+        <button class="pill-button" onclick="(window._closeModalById?window._closeModalById('searchReplaceModal'):document.getElementById('searchReplaceModal').classList.add('hidden'))">Cancel</button>
         <button class="pill-button success" onclick="window.executeSearchReplace()">Replace All</button>
       </div>
     </div>
@@ -1326,7 +1338,24 @@
       </div>
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
         <button id="btnFixContradictions" class="pill-button" onclick="window.fixAllContradictions()" style="display:none;">Auto-Fix Simple</button>
-        <button class="pill-button success" onclick="document.getElementById('validationModal').classList.add('hidden')">Close</button>
+        <button class="pill-button success" onclick="(window._closeModalById?window._closeModalById('validationModal'):document.getElementById('validationModal').classList.add('hidden'))">Close</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Reset All Modal -->
+  <div id="resetAllModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 450; display: flex; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-elevated); padding: 20px; border-radius: var(--radius-lg); width: 560px; max-width: 92%; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 14px;">
+      <div class="section-title" style="color: var(--danger);">Reset all values</div>
+      <div class="form-help">
+        This clears <b>all</b> local AURA data (autosave, globals, UI state). This cannot be undone.<br>
+        Type <code>RESET</code> to confirm.
+      </div>
+      <input id="resetAllConfirmInput" class="form-input" placeholder="Type RESET to confirm" oninput="window._onResetConfirmInput(this)">
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="pill-button" type="button" onclick="window._closeModalById('resetAllModal')">Cancel</button>
+        <button id="btnResetAllConfirm" class="pill-button danger" type="button" onclick="window.confirmResetAll()" disabled>Reset</button>
       </div>
     </div>
   </div>
@@ -1349,8 +1378,56 @@
         <input id="dupTargetGroup" class="form-input" placeholder="Enter group name...">
       </div>
       <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-        <button type="button" class="pill-button danger" onclick="document.getElementById('dupModal').classList.add('hidden')">Cancel</button>
+        <button type="button" class="pill-button danger" onclick="(window._closeModalById?window._closeModalById('dupModal'):document.getElementById('dupModal').classList.add('hidden'))">Cancel</button>
         <button type="button" class="pill-button success" onclick="window.executeDuplicateTo()">Duplicate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div id="keyboardShortcutsModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-elevated); padding: 24px; border-radius: var(--radius-lg); width: 500px; max-width: 90%; box-shadow: var(--shadow-soft);">
+      <div class="section-title" style="margin-bottom: 20px;">⌨️ Keyboard Shortcuts</div>
+      <div style="display: grid; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
+          <span style="color: var(--text-soft);">New Entry</span>
+          <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + N</kbd>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
+          <span style="color: var(--text-soft);">Duplicate Entry</span>
+          <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + D</kbd>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
+          <span style="color: var(--text-soft);">Delete Entry</span>
+          <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Delete</kbd>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
+          <span style="color: var(--text-soft);">Search</span>
+          <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + F</kbd>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
+          <span style="color: var(--text-soft);">Find & Replace</span>
+          <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + H</kbd>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
+          <span style="color: var(--text-soft);">Quick Switcher</span>
+          <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + P</kbd>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
+          <span style="color: var(--text-soft);">Save to File</span>
+          <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + S</kbd>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
+          <span style="color: var(--text-soft);">Keyboard Shortcuts</span>
+          <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + ?</kbd>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
+          <span style="color: var(--text-soft);">Close Modal</span>
+          <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Escape</kbd>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+        <button type="button" class="pill-button" onclick="(window._closeModalById?window._closeModalById('keyboardShortcutsModal'):document.getElementById('keyboardShortcutsModal').classList.add('hidden'))">Close</button>
       </div>
     </div>
   </div>
@@ -1376,11 +1453,31 @@
       "use strict";
 
       // --------------------------------------------------------------------------
-      // v15 emotion set (as defined in AURA+v15 docs)
+      // Constants - v15 emotion set (as defined in AURA+v15 docs)
       // --------------------------------------------------------------------------
       var EMOTIONS = ["ANGER", "JOY", "SADNESS", "FEAR", "ROMANCE", "NEUTRAL"];
       var EROS_INTENSITIES = ["platonic", "tension", "romance", "physical", "passion", "explicit", "conflict", "aftercare"];
       var INTENTS = ["question", "disclosure", "command", "promise", "conflict", "smalltalk", "meta", "narrative"];
+
+      // UI Constants
+      var TOAST_DURATION = 3000; // milliseconds
+      var TOAST_FADE_DURATION = 300; // milliseconds
+      var SCROLL_DELAY = 50; // milliseconds
+      var GRAPH_RENDER_DELAY = 50; // milliseconds
+      var GRAPH_RESIZE_DELAY = 300; // milliseconds (longer for resize operations)
+      var REFOCUS_DELAY = 50; // milliseconds
+
+      // Validation Limits
+      var MAX_EMOTION_GATES = 2;
+      var MAX_EROS_GATES = 2;
+      var MAX_INTENT_GATES = 1;
+
+      // Graph Physics Constants
+      var GRAPH_REPULSION_FORCE = 10000;
+      var GRAPH_REPULSION_MULTIPLIER = 0.5;
+      var GRAPH_CENTER_GRAVITY = 0.005;
+      var GRAPH_LINK_STIFFNESS = 0.05;
+      var GRAPH_DRAG = 0.9;
 
       // --------------------------------------------------------------------------
       // App State
@@ -1397,13 +1494,106 @@
         activeScripts: []
       };
 
+      // ------------------------------------------------------------
+      // UX State + Dirty Guard (refresh/close protection)
+      // ------------------------------------------------------------
+      STATE.isDirty = false;
+
+      function setDirty() {
+        try {
+          STATE.isDirty = true;
+          updateSaveIndicator('unsaved');
+        } catch (_e) {}
+      }
+
+      function clearDirty() {
+        try {
+          STATE.isDirty = false;
+          // updateSaveIndicator('saved') is handled by autoSave()
+        } catch (_e) {}
+      }
+
+      // Persist lightweight UI state (tab/type/selection/search) across reloads
+      var UI_STATE_KEY = 'aura_ui_state';
+
+      function loadUiState() {
+        try {
+          var raw = localStorage.getItem(UI_STATE_KEY);
+          if (!raw) return null;
+          var s = JSON.parse(raw);
+          if (!s || typeof s !== 'object') return null;
+          return s;
+        } catch (_e) { return null; }
+      }
+
+      function saveUiState(patch) {
+        try {
+          var cur = loadUiState() || {};
+          for (var k in patch) cur[k] = patch[k];
+          localStorage.setItem(UI_STATE_KEY, JSON.stringify(cur));
+        } catch (_e) {}
+      }
+
+      function applyUiState() {
+        var s = loadUiState();
+        if (!s) return;
+
+        // Type
+        if (s.type && (s.type === 'characters' || s.type === 'pairs' || s.type === 'dynamiclore')) {
+          STATE.type = s.type;
+        }
+
+        // Search
+        try {
+          var si = document.getElementById('searchInput');
+          var cb = document.getElementById('searchClear');
+          if (si && typeof s.search === 'string') {
+            si.value = s.search;
+            if (cb) cb.style.display = si.value ? 'inline-flex' : 'none';
+          }
+        } catch (_e0) {}
+
+        // Selection (apply after list renders)
+        if (s.entryId) STATE.entryId = s.entryId;
+        if (s.shiftId) STATE.shiftId = s.shiftId;
+
+        // Tabs (apply after DOM is ready)
+        if (s.tab) {
+          try { window.switchTab(String(s.tab)); } catch (_e1) {}
+        } else {
+          try { window.switchType(STATE.type); } catch (_e2) {}
+        }
+      }
+
+      window.addEventListener('beforeunload', function (e) {
+        try {
+          if (!STATE.isDirty) return;
+          e.preventDefault();
+          // Required for Chrome
+          e.returnValue = '';
+          return '';
+        } catch (_e) {}
+      });
+
+
       // --------------------------------------------------------------------------
       // Utilities
       // --------------------------------------------------------------------------
+
+      /**
+       * Generate a unique ID with a prefix
+       * @param {string} prefix - The prefix for the ID
+       * @returns {string} A unique identifier
+       */
       function id(prefix) {
         return prefix + "_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
       }
 
+      /**
+       * Escape HTML special characters to prevent XSS attacks
+       * @param {*} s - The string to escape
+       * @returns {string} HTML-safe string
+       */
       function escHtml(s) {
         return (s == null ? "" : String(s))
           .replace(/&/g, "&amp;")
@@ -1413,12 +1603,22 @@
           .replace(/'/g, "&#39;");
       }
 
+      /**
+       * Convert value to array, ensuring consistent array output
+       * @param {*} v - Value to convert
+       * @returns {Array} Array representation of the value
+       */
       function toArray(v) {
         if (!v) return [];
         if (Array.isArray(v)) return v.slice();
         return [v];
       }
 
+      /**
+       * Split comma-separated text into trimmed array
+       * @param {string} text - Comma-separated text
+       * @returns {Array<string>} Array of trimmed non-empty strings
+       */
       function splitCsv(text) {
         if (!text) return [];
         return String(text)
@@ -1427,6 +1627,11 @@
           .filter(Boolean);
       }
 
+      /**
+       * Join array into comma-separated string
+       * @param {Array} arr - Array to join
+       * @returns {string} Comma-separated string
+       */
       function joinCsv(arr) {
         if (!arr || !arr.length) return "";
         return arr.join(", ");
@@ -1473,11 +1678,86 @@
       function save(patch) {
         var entry = curr();
         if (entry) {
+          setDirty();
           for (var k in patch) entry[k] = patch[k];
           renderList();
           renderCode();
+          autoSave(); // Auto-save to localStorage
         }
       }
+
+      /**
+       * Auto-save current state to localStorage
+       */
+      function autoSave() {
+        try {
+          var dataToSave = {
+            characters: STATE.data.characters,
+            pairs: STATE.data.pairs,
+            dynamiclore: STATE.data.dynamiclore,
+            timestamp: Date.now()
+          };
+          localStorage.setItem('aura_data_autosave', JSON.stringify(dataToSave));
+          updateSaveIndicator('saved');
+          clearDirty();
+        } catch (err) {
+          console.error('Auto-save failed:', err);
+          updateSaveIndicator('error');
+        }
+      }
+
+      /**
+       * Load data from localStorage if available
+       */
+      function autoLoad() {
+        try {
+          var saved = localStorage.getItem('aura_data_autosave');
+          if (saved) {
+            var data = JSON.parse(saved);
+            if (data.characters && data.pairs && data.dynamiclore) {
+              STATE.data.characters = data.characters;
+              STATE.data.pairs = data.pairs;
+              STATE.data.dynamiclore = data.dynamiclore;
+
+              var date = new Date(data.timestamp);
+              var timeStr = date.toLocaleString();
+              window.showToast('Auto-saved data loaded from ' + timeStr, 'success');
+              return true;
+            }
+          }
+        } catch (err) {
+          console.error('Auto-load failed:', err);
+        }
+        return false;
+      }
+
+      /**
+       * Update save status indicator in UI
+       * @param {string} status - 'saved', 'unsaved', or 'error'
+       */
+      function updateSaveIndicator(status) {
+        var indicator = document.getElementById('saveIndicator');
+        var text = document.getElementById('saveText');
+        if (!indicator || !text) return;
+
+        if (status === 'saved') {
+          indicator.style.color = 'var(--success)';
+          text.textContent = 'Auto-saved';
+        } else if (status === 'unsaved') {
+          indicator.style.color = 'var(--warning)';
+          text.textContent = 'Unsaved changes';
+        } else if (status === 'error') {
+          indicator.style.color = 'var(--danger)';
+          text.textContent = 'Save error';
+        }
+      }
+
+      /**
+       * Show keyboard shortcuts modal
+       */
+      window.showKeyboardShortcuts = function() {
+        (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('keyboardShortcutsModal')):document.getElementById('keyboardShortcutsModal').classList.remove('hidden'));
+      };
 
       // Helper: bracket matching for safe import slicing
       function findMatchingBracket(str, startPos, openChar, closeChar) {
@@ -1559,22 +1839,76 @@
         document.getElementById(outputId).innerText = words + " words / ~" + tokens + " tokens";
       };
 
-      window.showToast = function(msg, type = 'info') {
-        let container = document.querySelector('.toast-container');
+      /**
+       * Display a toast notification to the user
+       * @param {string} msg - The message to display
+       * @param {string} type - The type of toast: 'info', 'success', 'error'
+       */
+      window.showToast = function(msg, type) {
+        type = type || 'info';
+        var container = document.querySelector('.toast-container');
         if (!container) {
           container = document.createElement('div');
           container.className = 'toast-container';
           document.body.appendChild(container);
         }
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.innerText = msg;
+        var toast = document.createElement('div');
+        toast.className = 'toast ' + type;
+        toast.textContent = msg; // Use textContent instead of innerText for security
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'polite');
         container.appendChild(toast);
-        setTimeout(() => {
-          toast.style.animation = 'fadeOut 0.3s forwards';
-          setTimeout(() => toast.remove(), 300);
-        }, 3000);
+        setTimeout(function() {
+          toast.style.animation = 'fadeOut ' + (TOAST_FADE_DURATION / 1000) + 's forwards';
+          setTimeout(function() {
+            if (toast.parentNode) {
+              toast.parentNode.removeChild(toast);
+            }
+          }, TOAST_FADE_DURATION);
+        }, TOAST_DURATION);
       };
+
+      // --------------------------------------------------------------------------
+      // Download helpers (backup/export safety)
+      // --------------------------------------------------------------------------
+      function _downloadText(filename, text, mime) {
+        mime = mime || 'text/plain;charset=utf-8';
+        try {
+          var blob = new Blob([String(text)], { type: mime });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(_e){} }, 250);
+        } catch (_e2) {
+          try { window.open('data:' + mime + ',' + encodeURIComponent(String(text))); } catch (_e3) {}
+        }
+      }
+
+      window.downloadBackupJson = function(reason) {
+        reason = reason || 'backup';
+        var snap = {
+          schema: 'aura.backup',
+          version: 1,
+          reason: String(reason),
+          createdAt: (new Date()).toISOString(),
+          state: {
+            type: STATE.type,
+            entryId: STATE.entryId,
+            shiftId: STATE.shiftId,
+            templateText: STATE.templateText || null,
+            activeScripts: STATE.activeScripts || [],
+            data: STATE.data
+          }
+        };
+        var name = 'AURA-backup-' + reason + '-' + (new Date().toISOString().replace(/[:.]/g,'-')) + '.json';
+        _downloadText(name, JSON.stringify(snap, null, 2), 'application/json;charset=utf-8');
+      };
+
+
 
       window.saveApiKey = function() {
         var key = document.getElementById('apiKey').value.trim();
@@ -1589,6 +1923,7 @@
       // --------------------------------------------------------------------------
       window.switchType = function (type, e) {
         STATE.type = type;
+        try{ saveUiState({ type: type, entryId: null, shiftId: null }); }catch(_e0){}
         STATE.entryId = null;
         STATE.shiftId = null;
         
@@ -1612,6 +1947,7 @@
       };
 
       window.switchTab = function (tab) {
+        try{ saveUiState({ tab: tab }); }catch(_e0){}
         var vis = document.getElementById("visualEditor");
         var code = document.getElementById("codeView");
         var graph = document.getElementById("graphView");
@@ -1643,7 +1979,7 @@
         } else if (tab === 'graph') {
           graph.classList.remove("hidden");
           btns[2].classList.add("active");
-          setTimeout(window.renderGraph, 50);
+          setTimeout(window.renderGraph, GRAPH_RENDER_DELAY);
         } else if (tab === 'laboratory') {
           lab.classList.remove("hidden");
           btns[3].classList.add("active");
@@ -1684,6 +2020,7 @@
       window.selectEntry = function (entryId, shiftId) {
         STATE.entryId = entryId;
         STATE.shiftId = shiftId || null;
+        try{ saveUiState({ entryId: STATE.entryId, shiftId: STATE.shiftId }); }catch(_e0){}
         renderList(true);
         renderEditor();
         renderCode();
@@ -1751,6 +2088,7 @@
         renderList(true);
         renderEditor();
         renderCode();
+        autoSave(); // Auto-save after creating new entry
       };
 
       window.duplicate = function () {
@@ -1766,6 +2104,7 @@
         renderList(true);
         renderEditor();
         renderCode();
+        autoSave(); // Auto-save after duplication
       };
 
       window.toggleFocusMode = function() {
@@ -1790,7 +2129,7 @@
 
           // If graph is visible, resize it
           if (!document.getElementById('graphView').classList.contains('hidden')) {
-            setTimeout(window.renderGraph, 300);
+            setTimeout(window.renderGraph, GRAPH_RESIZE_DELAY);
           }
         }
       };
@@ -1954,19 +2293,25 @@
             }
         };
 
+        // Execute active scripts
+        // WARNING: Script execution uses dynamic code evaluation
+        // Only load scripts from trusted sources
         if (STATE.activeScripts && STATE.activeScripts.length > 0) {
             STATE.activeScripts.forEach(function(s) {
                 try {
                     var initialScen = mockContext.character.scenario;
-                    // Execute script in a sandbox-ish way
-                    new Function('context', s.content)(mockContext);
-                    
+                    // Execute script in a sandboxed context
+                    // eslint-disable-next-line no-new-func
+                    var scriptFunc = new Function('context', s.content);
+                    scriptFunc(mockContext);
+
+                    // Track changes made by the script
                     if (mockContext.character.scenario !== initialScen) {
                         var diff = mockContext.character.scenario.substring(initialScen.length);
                         scriptInjections.push({ name: s.name, diff: diff });
                     }
                 } catch (e) {
-                    console.error("Error running script " + s.name, e);
+                    console.error("Error running script '" + s.name + "':", e);
                     scriptInjections.push({ name: s.name, error: e.message });
                 }
             });
@@ -2196,7 +2541,7 @@
       window.openDupModal = function() {
         var entry = STATE.shiftId ? currShift() : curr();
         if (!entry) { window.showToast("No entry selected", "error"); return; }
-        document.getElementById('dupModal').classList.remove('hidden');
+        (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('dupModal')):document.getElementById('dupModal').classList.remove('hidden'));
         document.getElementById('dupTargetType').value = 'same';
         document.getElementById('dupTargetGroup').value = entry.group || "";
       };
@@ -2243,7 +2588,7 @@
         }
 
         STATE.data[targetType].push(newEntry);
-        document.getElementById('dupModal').classList.add('hidden');
+        (window._closeModalById?window._closeModalById('dupModal'):document.getElementById('dupModal').classList.add('hidden'));
         window.showToast("Duplicated to " + targetType, "success");
         
         // If we stayed in same view, refresh. If moved, maybe switch? Let's just refresh current view.
@@ -2255,7 +2600,21 @@
           window.showToast("No entry selected", "error");
           return;
         }
-        if (!confirm("Are you sure you want to delete this entry? This cannot be undone.")) {
+
+        // Get entry name for confirmation
+        var entry = curr();
+        var entryName = "this entry";
+        if (entry) {
+          if (STATE.type === 'characters') {
+            entryName = entry.key || "Unnamed character";
+          } else if (STATE.type === 'pairs') {
+            entryName = (entry.pair && entry.pair.length) ? (entry.pair[0] + " & " + entry.pair[1]) : "Unnamed pair";
+          } else {
+            entryName = entry.id_name || "Unnamed lore entry";
+          }
+        }
+
+        if (!confirm("Delete \"" + entryName + "\"?\n\nThis cannot be undone.")) {
           return;
         }
 
@@ -2280,6 +2639,7 @@
           renderList();
           renderEditor();
           renderCode();
+          autoSave(); // Auto-save after deletion
         }
       };
 
@@ -2371,6 +2731,8 @@
         var txt = genExport();
         var fileTypes = [{ description: 'JavaScript Files', accept: { 'application/javascript': ['.js'] } }];
         saveTextToFile(txt, importedFileName, fileTypes);
+        // Mark as not-dirty after a successful export attempt (safety net)
+        clearDirty();
       };
 
       window.importData = function () {
@@ -2447,7 +2809,7 @@
       var scriptLoaderState = { scripts: [] };
 
       window.openScriptLoader = function() {
-        document.getElementById('scriptLoaderModal').classList.remove('hidden');
+        (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('scriptLoaderModal')):document.getElementById('scriptLoaderModal').classList.remove('hidden'));
         window.renderScriptList();
       };
 
@@ -2560,17 +2922,46 @@
         }
 
         window.showToast(isAppend ? "Scripts merged!" : "Scripts loaded!", "success");
-        document.getElementById('scriptLoaderModal').classList.add('hidden');
+        (window._closeModalById?window._closeModalById('scriptLoaderModal'):document.getElementById('scriptLoaderModal').classList.add('hidden'));
         renderList();
         renderEditor();
         renderCode();
       };
 
       window.copyCode = function () {
-        var code = document.getElementById("fullExportCode");
-        code.select();
-        document.execCommand("copy");
-        window.showToast("Copied to clipboard!", "success");
+        var ta = document.getElementById("fullExportCode");
+        if (!ta) return;
+        var text = String(ta.value || '');
+
+        // Modern API (secure contexts), with fallback
+        if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+          try {
+            navigator.clipboard.writeText(text).then(function () {
+              window.showToast("Copied to clipboard!", "success");
+            }, function () {
+              // fallback
+              try {
+                ta.focus();
+                ta.select();
+                document.execCommand("copy");
+                window.showToast("Copied to clipboard!", "success");
+              } catch (_e1) {
+                window.showToast("Copy failed. Select the text and copy manually.", "error");
+              }
+            });
+            return;
+          } catch (_e0) {}
+        }
+
+        // Fallback
+        try {
+          ta.focus();
+          ta.select();
+          document.execCommand("copy");
+          window.showToast("Copied to clipboard!", "success");
+        } catch (_e2) {
+          window.showToast("Copy failed. Select the text and copy manually.", "error");
+        }
       };
 
       window.syncFromJson = function () {
@@ -2799,6 +3190,18 @@
       }
 
       function parseImport(txt, append) {
+        // Safety: create a backup before overwrite imports
+        if (!append) {
+          try {
+            if ((STATE.data.characters && STATE.data.characters.length) ||
+                (STATE.data.pairs && STATE.data.pairs.length) ||
+                (STATE.data.dynamiclore && STATE.data.dynamiclore.length) ||
+                (STATE.templateText && String(STATE.templateText).length)) {
+              window.downloadBackupJson('backup-before-import');
+              window.showToast('Backup created before import.', 'info');
+            }
+          } catch (_e0) {}
+        }
         if (!append) {
           // Reset
           STATE.data.characters = [];
@@ -2853,86 +3256,134 @@
         extractGlobal("initial", "initialMessageTextarea", "aura_global_initial_message");
 
         // ENTITY_DB
+        // WARNING: Using eval() for parsing JavaScript object literals
+        // Only use this with trusted files that you created yourself
         var entIdx = txt.indexOf("const ENTITY_DB = {");
         if (entIdx >= 0) {
           var entStart = txt.indexOf("{", entIdx);
           var entEnd = findMatchingBracket(txt, entStart, "{", "}");
           if (entEnd >= 0) {
             var entBlock = txt.substring(entStart, entEnd + 1);
-            var ENTITY_DB = eval("(" + entBlock + ")");
-            for (var name in ENTITY_DB) {
-              if (!Object.prototype.hasOwnProperty.call(ENTITY_DB, name)) continue;
-              var meta = ENTITY_DB[name] || {};
-              var basePersonality = "";
-              if (meta.lore && meta.lore.length && meta.lore[0] && meta.lore[0].personality != null) {
-                basePersonality = meta.lore[0].personality;
+            try {
+              // eslint-disable-next-line no-eval
+              var ENTITY_DB = eval("(" + entBlock + ")");
+
+              // Validate that ENTITY_DB is an object
+              if (typeof ENTITY_DB !== 'object' || ENTITY_DB === null || Array.isArray(ENTITY_DB)) {
+                throw new Error("ENTITY_DB must be an object");
               }
-              STATE.data.characters.push({
-                id: id("char"),
-                key: name,
-                gender: meta.gender || "N",
-                aliases: toArray(meta.aliases).filter(Boolean),
-                personality: basePersonality || ""
-              });
+
+              for (var name in ENTITY_DB) {
+                if (!Object.prototype.hasOwnProperty.call(ENTITY_DB, name)) continue;
+                var meta = ENTITY_DB[name] || {};
+                var basePersonality = "";
+                if (meta.lore && meta.lore.length && meta.lore[0] && meta.lore[0].personality != null) {
+                  basePersonality = meta.lore[0].personality;
+                }
+                STATE.data.characters.push({
+                  id: id("char"),
+                  key: String(name), // Sanitize key
+                  gender: meta.gender || "N",
+                  aliases: toArray(meta.aliases).filter(Boolean),
+                  personality: basePersonality || ""
+                });
+              }
+            } catch (err) {
+              console.error("Error parsing ENTITY_DB:", err);
+              window.showToast("Error parsing ENTITY_DB: " + err.message, "error");
             }
           }
         }
 
         // RELATIONSHIP_DB
+        // WARNING: Using eval() for parsing JavaScript array literals
+        // Only use this with trusted files that you created yourself
         var relIdx = txt.indexOf("const RELATIONSHIP_DB = [");
         if (relIdx >= 0) {
           var relStart = txt.indexOf("[", relIdx);
           var relEnd = findMatchingBracket(txt, relStart, "[", "]");
           if (relEnd >= 0) {
             var relBlock = txt.substring(relStart, relEnd + 1);
-            var RELATIONSHIP_DB = eval(relBlock);
-            for (var i = 0; i < RELATIONSHIP_DB.length; i++) {
-              var r = RELATIONSHIP_DB[i] || {};
-              STATE.data.pairs.push({
-                id: id("pair"),
-                pair: r.pair || ["", ""],
-                requireTags: r.requireTags || r.andAll || r.andAny || [],
-                injection: r.injection || r.scenario || "",
-                group: r.group || ""
-              });
+            try {
+              // eslint-disable-next-line no-eval
+              var RELATIONSHIP_DB = eval(relBlock);
+
+              // Validate that RELATIONSHIP_DB is an array
+              if (!Array.isArray(RELATIONSHIP_DB)) {
+                throw new Error("RELATIONSHIP_DB must be an array");
+              }
+
+              for (var i = 0; i < RELATIONSHIP_DB.length; i++) {
+                var r = RELATIONSHIP_DB[i] || {};
+                STATE.data.pairs.push({
+                  id: id("pair"),
+                  pair: r.pair || ["", ""],
+                  requireTags: r.requireTags || r.andAll || r.andAny || [],
+                  injection: r.injection || r.scenario || "",
+                  group: r.group || ""
+                });
+              }
+            } catch (err) {
+              console.error("Error parsing RELATIONSHIP_DB:", err);
+              window.showToast("Error parsing RELATIONSHIP_DB: " + err.message, "error");
             }
           }
         }
 
         // DYNAMIC_LORE
+        // WARNING: Using eval() for parsing JavaScript array literals
+        // Only use this with trusted files that you created yourself
         var loreIdx = txt.indexOf("const DYNAMIC_LORE = [");
         if (loreIdx >= 0) {
           var loreStart = txt.indexOf("[", loreIdx);
           var loreEnd = findMatchingBracket(txt, loreStart, "[", "]");
           if (loreEnd >= 0) {
             var loreBlock = txt.substring(loreStart, loreEnd + 1);
-            var DYNAMIC_LORE = eval(loreBlock);
-            for (var j = 0; j < DYNAMIC_LORE.length; j++) {
-              var e = DYNAMIC_LORE[j] || {};
-              var entry = inflateLoreFromImport(e);
-              STATE.data.dynamiclore.push(entry);
+            try {
+              // eslint-disable-next-line no-eval
+              var DYNAMIC_LORE = eval(loreBlock);
+
+              // Validate that DYNAMIC_LORE is an array
+              if (!Array.isArray(DYNAMIC_LORE)) {
+                throw new Error("DYNAMIC_LORE must be an array");
+              }
+
+              for (var j = 0; j < DYNAMIC_LORE.length; j++) {
+                var e = DYNAMIC_LORE[j] || {};
+                var entry = inflateLoreFromImport(e);
+                STATE.data.dynamiclore.push(entry);
+              }
+            } catch (err) {
+              console.error("Error parsing DYNAMIC_LORE:", err);
+              window.showToast("Error parsing DYNAMIC_LORE: " + err.message, "error");
             }
           }
         }
 
         // addEntry parsing (robust)
+        // WARNING: Using eval() for parsing JavaScript object literals
+        // Only use this with trusted files that you created yourself
         var searchIdx = 0;
         while (true) {
           var start = txt.indexOf("addEntry(", searchIdx);
           if (start === -1) break;
-          
+
           var openParen = start + 8;
           var end = findMatchingBracket(txt, openParen, '(', ')');
-          
+
           if (end !== -1) {
             var entryCode = txt.substring(openParen + 1, end);
             try {
+              // eslint-disable-next-line no-eval
               var entry = eval('(' + entryCode + ')');
-              if (entry) {
+              if (entry && typeof entry === 'object') {
                 STATE.data.dynamiclore.push(inflateLoreFromImport(entry));
+              } else {
+                console.warn("Invalid entry object at position " + start);
               }
             } catch (e) {
-              console.error("Could not parse addEntry at " + start, e);
+              console.error("Could not parse addEntry at position " + start + ":", e);
+              window.showToast("Error parsing addEntry: " + e.message, "error");
             }
             searchIdx = end + 1;
           } else {
@@ -3043,7 +3494,7 @@
           setTimeout(function() {
             var activeEl = list.querySelector(".entry-item.active");
             if (activeEl) activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          }, 50);
+          }, SCROLL_DELAY);
         }
       }
 
@@ -3371,9 +3822,69 @@
       }
 
       window.openSearchReplaceModal = function() {
-        document.getElementById('searchReplaceModal').classList.remove('hidden');
-        document.getElementById('srFind').focus();
+        var m = document.getElementById('searchReplaceModal');
+        if (m) {
+          if (window.ModalManager && window.ModalManager.open) window.ModalManager.open(m);
+          else m.classList.remove('hidden');
+        }
+        try { var f = document.getElementById('srFind'); if (f) f.focus(); } catch (_e) {}
       };
+
+      window.openResetAllModal = function() {
+        var modal = document.getElementById('resetAllModal');
+        var inp = document.getElementById('resetAllConfirmInput');
+        var btn = document.getElementById('btnResetAllConfirm');
+        if (inp) inp.value = '';
+        if (btn) btn.disabled = true;
+        if (window.ModalManager && window.ModalManager.open) window.ModalManager.open(modal);
+        else if (modal) modal.classList.remove('hidden');
+        try { if (inp) inp.focus(); } catch(_e){}
+      };
+
+      window._onResetConfirmInput = function(inp) {
+        var v = '';
+        try { v = String(inp.value || ''); } catch(_e){}
+        var ok = (v === 'RESET');
+        var btn = document.getElementById('btnResetAllConfirm');
+        if (btn) btn.disabled = !ok;
+      };
+
+      window.confirmResetAll = function() {
+        var inp = document.getElementById('resetAllConfirmInput');
+        var v = '';
+        try { v = String(inp.value || ''); } catch(_e){}
+        if (v !== 'RESET') return;
+
+        try {
+          // Clear localStorage keys used by this tool
+          localStorage.removeItem('aura_data_autosave');
+          localStorage.removeItem('aura_global_personality');
+          localStorage.removeItem('aura_global_scenario');
+          localStorage.removeItem('aura_global_initial_message');
+          localStorage.removeItem('aura_gemini_key');
+          localStorage.removeItem('aura_ui_state');
+        } catch(_e0){}
+
+        // Reset in-memory state
+        try {
+          STATE.templateText = null;
+          STATE.activeScripts = [];
+          STATE.type = 'characters';
+          STATE.entryId = null;
+          STATE.shiftId = null;
+          STATE.data.characters = [];
+          STATE.data.pairs = [];
+          STATE.data.dynamiclore = [];
+          clearDirty();
+          updateSaveIndicator('saved');
+        } catch(_e1){}
+
+        try { window._closeModalById('resetAllModal'); } catch(_e2){}
+        try { renderList(); renderEditor(); renderCode(); } catch(_e3){}
+        window.showToast('All values reset.', 'success');
+      };
+
+
 
       window.executeSearchReplace = function() {
         var findText = document.getElementById('srFind').value;
@@ -3451,7 +3962,7 @@
         STATE.data.pairs.forEach(function(e) { processEntry(e, 'pairs'); });
         STATE.data.dynamiclore.forEach(function(e) { processEntry(e, 'dynamiclore'); });
 
-        document.getElementById('searchReplaceModal').classList.add('hidden');
+        (window._closeModalById?window._closeModalById('searchReplaceModal'):document.getElementById('searchReplaceModal').classList.add('hidden'));
         window.showToast("Replaced " + replacementCount + " occurrences.", "success");
         
         renderList();
@@ -3497,16 +4008,16 @@
             }
         });
 
-        // Limits
-        checkLimit('andAllEmotion', 2, 'Emotion');
-        checkLimit('notAnyEmotion', 2, 'Emotion');
-        checkLimit('notAllEmotion', 2, 'Emotion');
-        checkLimit('andAllEros', 2, 'Eros');
-        checkLimit('notAnyEros', 2, 'Eros');
-        checkLimit('notAllEros', 2, 'Eros');
-        checkLimit('andAllIntent', 1, 'Intent');
-        checkLimit('notAnyIntent', 1, 'Intent');
-        checkLimit('notAllIntent', 1, 'Intent');
+        // Limits (using defined constants)
+        checkLimit('andAllEmotion', MAX_EMOTION_GATES, 'Emotion');
+        checkLimit('notAnyEmotion', MAX_EMOTION_GATES, 'Emotion');
+        checkLimit('notAllEmotion', MAX_EMOTION_GATES, 'Emotion');
+        checkLimit('andAllEros', MAX_EROS_GATES, 'Eros');
+        checkLimit('notAnyEros', MAX_EROS_GATES, 'Eros');
+        checkLimit('notAllEros', MAX_EROS_GATES, 'Eros');
+        checkLimit('andAllIntent', MAX_INTENT_GATES, 'Intent');
+        checkLimit('notAnyIntent', MAX_INTENT_GATES, 'Intent');
+        checkLimit('notAllIntent', MAX_INTENT_GATES, 'Intent');
 
         return errors;
       }
@@ -3542,6 +4053,119 @@
         
         modal.classList.remove('hidden');
       };
+
+
+      // --------------------------------------------------------------------------
+      // Data Health Check (read-only validation)
+      // --------------------------------------------------------------------------
+      window.runHealthCheck = function() {
+        var issues = [];
+
+        function addIssue(kind, msg, type, entryId, shiftId) {
+          issues.push({ kind: kind, msg: msg, type: type || '', entryId: entryId || null, shiftId: shiftId || null });
+        }
+
+        function isArr(x){ return Object.prototype.toString.call(x) === '[object Array]'; }
+        function trim(s){ return String(s == null ? '' : s).replace(/^\s+|\s+$/g,''); }
+
+        // Characters: empty/duplicate keys
+        var cSeen = {};
+        for (var i=0;i<STATE.data.characters.length;i++){
+          var c = STATE.data.characters[i] || {};
+          var key = trim(c.key || '');
+          if (!key) addIssue('error', 'Character with empty key at index ' + i + '.', 'characters', c.id || null, null);
+          else {
+            var lk = key.toLowerCase();
+            if (cSeen[lk]) addIssue('warn', 'Duplicate character key "' + key + '".', 'characters', c.id || null, null);
+            cSeen[lk] = true;
+          }
+          if (c.aliases && !isArr(c.aliases)) addIssue('warn', 'Character "' + (key||'(unnamed)') + '" has malformed aliases (expected array).', 'characters', c.id || null, null);
+        }
+
+        // Pairs: missing refs / empty keys
+        var charKeySet = {};
+        for (i=0;i<STATE.data.characters.length;i++){
+          var ck = trim((STATE.data.characters[i]||{}).key || '');
+          if (ck) charKeySet[ck] = true;
+        }
+        for (i=0;i<STATE.data.pairs.length;i++){
+          var p = STATE.data.pairs[i] || {};
+          var pa = trim(p.a || p.charA || p.left || '');
+          var pb = trim(p.b || p.charB || p.right || '');
+          if (!pa || !pb) addIssue('warn', 'Pair missing character reference(s) at index ' + i + '.', 'pairs', p.id || null, null);
+          if (pa && !charKeySet[pa]) addIssue('warn', 'Pair references missing character "' + pa + '".', 'pairs', p.id || null, null);
+          if (pb && !charKeySet[pb]) addIssue('warn', 'Pair references missing character "' + pb + '".', 'pairs', p.id || null, null);
+          if (p.requireTags && !isArr(p.requireTags)) addIssue('warn', 'Pair has malformed requireTags (expected array).', 'pairs', p.id || null, null);
+        }
+
+        // DynamicLore: required-ish fields + malformed tags arrays
+        function scanLore(entries, parentId){
+          if (!entries || !isArr(entries)) return;
+          for (var j=0;j<entries.length;j++){
+            var e = entries[j] || {};
+            var eid = e.id || parentId || null;
+            var name = trim(e.id_name || e.name || e.key || '');
+            if (!name) addIssue('warn', 'DynamicLore entry missing id_name/name at index ' + j + '.', 'dynamiclore', eid, null);
+            if (e.keys && !isArr(e.keys)) addIssue('warn', 'DynamicLore "' + (name||'(unnamed)') + '" has malformed keys (expected array).', 'dynamiclore', eid, null);
+            if (e.tags && !isArr(e.tags)) addIssue('warn', 'DynamicLore "' + (name||'(unnamed)') + '" has malformed tags (expected array).', 'dynamiclore', eid, null);
+            if (e.shifts && isArr(e.shifts)) {
+              for (var k=0;k<e.shifts.length;k++){
+                var s = e.shifts[k] || {};
+                var sid = s.id || null;
+                if (s.tags && !isArr(s.tags)) addIssue('warn', 'Shift for "' + (name||'(unnamed)') + '" has malformed tags (expected array).', 'dynamiclore', eid, sid);
+              }
+              // recurse if nested
+              scanLore(e.shifts, eid);
+            }
+          }
+        }
+        scanLore(STATE.data.dynamiclore, null);
+
+        // Render report
+        var modal = document.getElementById('validationModal');
+        var list = document.getElementById('validationResultList');
+        if (!modal || !list) return;
+
+        document.getElementById('btnFixContradictions').style.display = 'none';
+
+        if (!issues.length) {
+          list.innerHTML = '<div style="color: var(--success);">✅ No issues found.</div>';
+        } else {
+          var html = '<div style="margin-bottom:8px;"><b>⚠️ ' + issues.length + ' issue(s) found</b></div>';
+          for (i=0;i<issues.length;i++){
+            var it = issues[i];
+            var icon = (it.kind === 'error') ? '⛔' : '⚠️';
+            html += '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;border-bottom:1px solid var(--border);padding:6px 0;">';
+            html += '<div style="flex:1;">' + icon + ' [' + (it.type || '-') + '] ' + escHtml(it.msg) + '</div>';
+            if (it.entryId) {
+              html += '<button class="pill-button small" type="button" onclick="window._jumpToIssue(\'' + escHtml(String(it.type||'')) + '\', \'' + escHtml(String(it.entryId)) + '\', \'' + escHtml(String(it.shiftId||'')) + '\')">Jump</button>';
+            } else {
+              html += '<div style="width:56px;"></div>';
+            }
+            html += '</div>';
+          }
+          list.innerHTML = html;
+        }
+
+        if (window.ModalManager && window.ModalManager.open) window.ModalManager.open(modal);
+        else modal.classList.remove('hidden');
+      };
+
+      window._jumpToIssue = function(type, entryId, shiftId) {
+        try {
+          if (type === 'characters' || type === 'pairs' || type === 'dynamiclore') {
+            window.switchType(type);
+            window.selectEntry(entryId, shiftId || null);
+            // also ensure Visual tab for editing
+            try { window.switchTab('visual'); } catch(_e0){}
+          }
+        } catch (_e) {}
+        try {
+          if (window.ModalManager && window.ModalManager.close) window.ModalManager.close(document.getElementById('validationModal'));
+          else (window._closeModalById?window._closeModalById('validationModal'):document.getElementById('validationModal').classList.add('hidden'));
+        } catch (_e2) {}
+      };
+
 
       window.fixAllContradictions = function() {
         var fixCount = 0;
@@ -3612,30 +4236,110 @@
       };
 
       window._handleSmartTagKey = function(e, context, field) {
-        if (e.key === 'Enter' || e.key === ',') {
-          e.preventDefault();
+        var key = e.key;
+
+        // Commit current value
+        if (key === 'Enter' || key === ',' || key === ';' || key === 'Tab') {
+          if (key === 'Tab') e.preventDefault();
+          if (key === ',' || key === ';') e.preventDefault();
+          if (key === 'Enter') e.preventDefault();
           window._finalizeSmartTag(e.target, context, field, true);
+          return;
+        }
+
+        // Backspace on empty input removes last tag
+        if (key === 'Backspace') {
+          var v = '';
+          try { v = String(e.target && e.target.value != null ? e.target.value : ''); } catch(_e0){}
+          if (!v) {
+            var entry = (context === 'shift') ? currShift() : curr();
+            if (!entry) return;
+            var arr = toArray(entry[field]);
+            if (arr.length) {
+              e.preventDefault();
+              arr.pop();
+              var patch = {}; patch[field] = arr;
+              if (context === 'shift') saveShift(patch); else save(patch);
+              try { renderEditor(); } catch (_e1) {}
+            }
+          }
         }
       };
 
-      window._finalizeSmartTag = function(input, context, field, keepFocus) {
-        var val = input.value.trim().replace(/,/g, '');
-        if (!val) return;
-        
+      
+      window._handleSmartTagPaste = function(e, context, field) {
+        // If paste includes separators, auto-commit after paste occurs.
+        try {
+          var txt = '';
+          if (e && e.clipboardData && e.clipboardData.getData) {
+            txt = e.clipboardData.getData('text') || '';
+          }
+          // Let the paste happen, then inspect input value.
+          setTimeout(function(){
+            try{
+              var input = e && e.target ? e.target : null;
+              if (!input) return;
+              var v = String(input.value || '');
+              if (!v) return;
+              if (v.indexOf(',') >= 0 || v.indexOf('\n') >= 0 || v.indexOf('\r') >= 0 || v.indexOf(';') >= 0) {
+                window._finalizeSmartTag(input, context, field, true);
+              }
+            }catch(_e2){}
+          }, 0);
+        } catch (_e) {}
+      };
+
+window._finalizeSmartTag = function(input, context, field, keepFocus) {
+        // Accept single value OR a comma/newline separated list (pastes, etc.)
+        var raw = (input && input.value != null) ? String(input.value) : "";
+        raw = raw.replace(/\r/g, "");
+        if (!raw) return;
+
+        // Split on commas and newlines; trim; drop empties
+        var parts = raw.split(/[,\\n]+/);
+        var cleaned = [];
+        for (var i = 0; i < parts.length; i++) {
+          var p = String(parts[i]).replace(/^\s+|\s+$/g, '');
+          if (!p) continue;
+          cleaned.push(p);
+        }
+        if (!cleaned.length) return;
+
         var entry = (context === 'shift') ? currShift() : curr();
         if (!entry) return;
-        
+
         var arr = toArray(entry[field]);
-        if (arr.indexOf(val) < 0) arr.push(val);
-        
+        var changed = false;
+
+        for (i = 0; i < cleaned.length; i++) {
+          var val = cleaned[i];
+
+          // Preserve commas inside phrases if user intentionally included them,
+          // but do not treat them as separators here (we already split above).
+          // De-dupe exact matches.
+          if (arr.indexOf(val) < 0) {
+            arr.push(val);
+            changed = true;
+          }
+        }
+
+        // Clear visible input regardless (prevents re-adding on blur)
+        try { input.value = ""; } catch (_e0) {}
+
+        if (!changed) return;
+
         var patch = {}; patch[field] = arr;
         if (context === 'shift') saveShift(patch); else save(patch);
-        
+
+        // IMPORTANT: editor UI is not re-rendered by save(), so refresh it
+        // to show the newly added tags immediately.
+        try { renderEditor(); } catch (_e1) {}
+
         if (keepFocus) {
-          setTimeout(function(){ 
+          setTimeout(function(){
             var nextInput = document.getElementById('input_' + field + '_' + context);
-            if(nextInput) nextInput.focus(); 
-          }, 50);
+            if (nextInput) nextInput.focus();
+          }, 0);
         }
       };
 
@@ -3643,18 +4347,24 @@
         e.stopPropagation();
         var entry = (context === 'shift') ? currShift() : curr();
         if (!entry) return;
-        
+
         var arr = toArray(entry[field]);
         arr.splice(index, 1);
-        
+
         var patch = {}; patch[field] = arr;
         if (context === 'shift') saveShift(patch); else save(patch);
+
+        // Refresh editor immediately (save() doesn't do this)
+        try { renderEditor(); } catch (_e) {}
       };
 
       window._syncSmartTagFromHidden = function(hiddenInput, context, field) {
         var arr = splitCsv(hiddenInput.value);
         var patch = {}; patch[field] = arr;
         if (context === 'shift') saveShift(patch); else save(patch);
+
+        // Refresh editor immediately (so tags appear without tab switching)
+        try { renderEditor(); } catch (_e) {}
       };
 
       function gateTextarea(field, label, arr) {
@@ -3766,124 +4476,87 @@
         );
       }
 
-      window._emoAdd = function (field, selectId) {
+      /**
+       * Generic function to add a gate value (emotion/eros/intent)
+       * @param {string} field - The field name to update
+       * @param {string} selectId - The select element ID
+       * @param {Function} caseTransform - Function to transform case (toUpperCase or toLowerCase)
+       */
+      function addGateValue(field, selectId, caseTransform) {
         var el = document.getElementById(selectId);
         if (!el) return;
-        var v = (el.value || "").toUpperCase();
+        var v = caseTransform((el.value || ""));
         if (!v) return;
 
         var e = curr();
         if (!e) return;
 
-        var arr = toArray(e[field]).map(function (x) { return String(x).toUpperCase(); });
+        var arr = toArray(e[field]).map(function (x) { return caseTransform(String(x)); });
         if (arr.indexOf(v) < 0) arr.push(v);
 
         var patch = {};
         patch[field] = arr;
         save(patch);
 
-        // reset selector
+        // Reset selector
         el.value = "";
 
-        // refresh UI so pills appear immediately
-        try { renderEditor(); } catch (e) { }
+        // Refresh UI so pills appear immediately
+        try { renderEditor(); } catch (err) {
+          console.error("Error rendering editor:", err);
+        }
+      }
+
+      /**
+       * Generic function to remove a gate value (emotion/eros/intent)
+       * @param {string} field - The field name to update
+       * @param {string} v - The value to remove
+       * @param {Function} caseTransform - Function to transform case (toUpperCase or toLowerCase)
+       */
+      function removeGateValue(field, v, caseTransform) {
+        v = caseTransform(String(v || ""));
+        var e = curr();
+        if (!e) return;
+
+        var arr = toArray(e[field]).map(function (x) { return caseTransform(String(x)); });
+        var idx = arr.indexOf(v);
+        if (idx >= 0) arr.splice(idx, 1);
+
+        var patch = {};
+        patch[field] = arr;
+        save(patch);
+
+        // Refresh UI so pills update immediately
+        try { renderEditor(); } catch (err) {
+          console.error("Error rendering editor:", err);
+        }
+      }
+
+      // Emotion gates (uppercase)
+      window._emoAdd = function (field, selectId) {
+        addGateValue(field, selectId, function(s) { return s.toUpperCase(); });
       };
 
       window._emoRemove = function (field, v) {
-        v = String(v || "").toUpperCase();
-        var e = curr();
-        if (!e) return;
-
-        var arr = toArray(e[field]).map(function (x) { return String(x).toUpperCase(); });
-        var idx = arr.indexOf(v);
-        if (idx >= 0) arr.splice(idx, 1);
-
-        var patch = {};
-        patch[field] = arr;
-        save(patch);
-
-        // refresh UI so pills update immediately
-        try { renderEditor(); } catch (e) { }
+        removeGateValue(field, v, function(s) { return s.toUpperCase(); });
       };
 
+      // Eros gates (lowercase)
       window._erosAdd = function (field, selectId) {
-        var el = document.getElementById(selectId);
-        if (!el) return;
-        var v = (el.value || "").toLowerCase();
-        if (!v) return;
-
-        var e = curr();
-        if (!e) return;
-
-        var arr = toArray(e[field]).map(function (x) { return String(x).toLowerCase(); });
-        if (arr.indexOf(v) < 0) arr.push(v);
-
-        var patch = {};
-        patch[field] = arr;
-        save(patch);
-
-        // reset selector
-        el.value = "";
-
-        // refresh UI so pills appear immediately
-        try { renderEditor(); } catch (e) { }
+        addGateValue(field, selectId, function(s) { return s.toLowerCase(); });
       };
 
       window._erosRemove = function (field, v) {
-        v = String(v || "").toLowerCase();
-        var e = curr();
-        if (!e) return;
-
-        var arr = toArray(e[field]).map(function (x) { return String(x).toLowerCase(); });
-        var idx = arr.indexOf(v);
-        if (idx >= 0) arr.splice(idx, 1);
-
-        var patch = {};
-        patch[field] = arr;
-        save(patch);
-
-        // refresh UI so pills update immediately
-        try { renderEditor(); } catch (e) { }
+        removeGateValue(field, v, function(s) { return s.toLowerCase(); });
       };
 
+      // Intent gates (lowercase)
       window._intentAdd = function (field, selectId) {
-        var el = document.getElementById(selectId);
-        if (!el) return;
-        var v = (el.value || "").toLowerCase();
-        if (!v) return;
-
-        var e = curr();
-        if (!e) return;
-
-        var arr = toArray(e[field]).map(function (x) { return String(x).toLowerCase(); });
-        if (arr.indexOf(v) < 0) arr.push(v);
-
-        var patch = {};
-        patch[field] = arr;
-        save(patch);
-
-        // reset selector
-        el.value = "";
-
-        // refresh UI so pills appear immediately
-        try { renderEditor(); } catch (e) { }
+        addGateValue(field, selectId, function(s) { return s.toLowerCase(); });
       };
 
       window._intentRemove = function (field, v) {
-        v = String(v || "").toLowerCase();
-        var e = curr();
-        if (!e) return;
-
-        var arr = toArray(e[field]).map(function (x) { return String(x).toLowerCase(); });
-        var idx = arr.indexOf(v);
-        if (idx >= 0) arr.splice(idx, 1);
-
-        var patch = {};
-        patch[field] = arr;
-        save(patch);
-
-        // refresh UI so pills update immediately
-        try { renderEditor(); } catch (e) { }
+        removeGateValue(field, v, function(s) { return s.toLowerCase(); });
       };
 
       window._toggleLoreChar = function (name) {
@@ -4254,7 +4927,7 @@
       window.openAiModal = function (targetId) {
         aiTargetField = targetId;
         aiGenerationMode = 'text';
-        document.getElementById('aiModal').classList.remove('hidden');
+        (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('aiModal')):document.getElementById('aiModal').classList.remove('hidden'));
         var targetElement = document.getElementById(targetId);
         if (targetElement) {
           document.getElementById('aiPrompt').value = targetElement.value;
@@ -4269,7 +4942,7 @@
 
       window.openAiEntryModal = function () {
         aiGenerationMode = 'entry';
-        document.getElementById('aiModal').classList.remove('hidden');
+        (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('aiModal')):document.getElementById('aiModal').classList.remove('hidden'));
         
         var promptText = 'Generate a new DYNAMIC_LORE based on the personality and scenario information.';
         if (STATE.type === 'characters') promptText = 'Generate a new CHARACTER entry based on the personality context.';
@@ -4293,7 +4966,7 @@
           return;
         }
         aiGenerationMode = 'shift';
-        document.getElementById('aiModal').classList.remove('hidden');
+        (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('aiModal')):document.getElementById('aiModal').classList.remove('hidden'));
         document.getElementById('aiPrompt').value = 'Generate a Shift for the current entry. Focus on a specific reaction or mood change.';
         document.getElementById('aiPrompt').readOnly = false;
         document.getElementById('aiResult').value = "";
@@ -4313,7 +4986,7 @@
           return;
         }
         aiGenerationMode = 'edit_entry';
-        document.getElementById('aiModal').classList.remove('hidden');
+        (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('aiModal')):document.getElementById('aiModal').classList.remove('hidden'));
         
         var contextName = (entry.id_name || entry.key || "this entry");
         if (STATE.shiftId) contextName = "this shift";
@@ -4339,7 +5012,7 @@
         
         aiTargetField = targetId;
         aiGenerationMode = 'edit_text';
-        document.getElementById('aiModal').classList.remove('hidden');
+        (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('aiModal')):document.getElementById('aiModal').classList.remove('hidden'));
         
         document.getElementById('aiPrompt').value = "Refine this text: ";
         document.getElementById('aiPrompt').readOnly = false;
@@ -4353,7 +5026,7 @@
       };
 
       window.closeAiModal = function () {
-        document.getElementById('aiModal').classList.add('hidden');
+        (window._closeModalById?window._closeModalById('aiModal'):document.getElementById('aiModal').classList.add('hidden'));
         document.getElementById('aiPrompt').readOnly = false;
         document.getElementById('aiResult').value = "";
         document.getElementById('insertAiResultBtn').style.display = 'inline-flex';
@@ -4793,11 +5466,7 @@
       function gTick() {
         var searchTerm = document.getElementById('gSearchNode') ? document.getElementById('gSearchNode').value.toLowerCase().trim() : "";
 
-        // Physics
-        var k = 0.05; // repulsion const
-        var drag = 0.90;
-        
-        // Repulsion
+        // Repulsion forces between nodes
         for (var i=0; i<gNodes.length; i++) {
           var a = gNodes[i];
           for (var j=i+1; j<gNodes.length; j++) {
@@ -4805,30 +5474,31 @@
             var dx = b.x - a.x, dy = b.y - a.y;
             var d2 = dx*dx + dy*dy + 0.1;
             var d = Math.sqrt(d2);
-            var f = (10000 / d2) * 0.5;
+            var f = (GRAPH_REPULSION_FORCE / d2) * GRAPH_REPULSION_MULTIPLIER;
             var fx = (dx/d) * f, fy = (dy/d) * f;
             a.vx -= fx; a.vy -= fy;
             b.vx += fx; b.vy += fy;
           }
-          // Center gravity
-          a.vx -= a.x * 0.005; a.vy -= a.y * 0.005;
+          // Center gravity - pull nodes toward center
+          a.vx -= a.x * GRAPH_CENTER_GRAVITY;
+          a.vy -= a.y * GRAPH_CENTER_GRAVITY;
         }
 
-        // Links
+        // Spring forces for links
         gLinks.forEach(function(l) {
           var dx = l.t.x - l.s.x, dy = l.t.y - l.s.y;
           var d = Math.sqrt(dx*dx + dy*dy);
-          var f = (d - l.len) * 0.05;
+          var f = (d - l.len) * GRAPH_LINK_STIFFNESS;
           var fx = (dx/d) * f, fy = (dy/d) * f;
           l.s.vx += fx; l.s.vy += fy;
           l.t.vx -= fx; l.t.vy -= fy;
         });
 
-        // Update
+        // Update node positions with velocity damping
         gNodes.forEach(function(n) {
           if (n === gDrag.node) return;
           n.x += n.vx; n.y += n.vy;
-          n.vx *= drag; n.vy *= drag;
+          n.vx *= GRAPH_DRAG; n.vy *= GRAPH_DRAG;
         });
 
         // Draw
@@ -4887,13 +5557,162 @@
             window.updateStats('initialMessageTextarea', 'initialMessageStats');
         }
 
+        // Auto-load saved data
+        autoLoad();
+
+        // Restore UI state (tab/type/selection/search)
+        try { applyUiState(); } catch (_e) {}
+
         window.clearChat();
         renderList();
         renderEditor();
         renderCode();
 
-        // Keyboard shortcuts
+        
+        // --------------------------------------------------------------------------
+        // Modal UX: Esc-to-close + Focus Trap (topmost open modal)
+        // --------------------------------------------------------------------------
+        (function(){
+          var MODAL_SELECTOR = 'div[id$="Modal"]';
+          var activeModal = null;
+          var prevFocus = null;
+
+          function isHidden(el){
+            if (!el) return true;
+            return el.classList && el.classList.contains('hidden');
+          }
+
+          function listOpenModals(){
+            var all = document.querySelectorAll(MODAL_SELECTOR);
+            var open = [];
+            for (var i=0;i<all.length;i++){
+              if (!isHidden(all[i])) open.push(all[i]);
+            }
+            return open;
+          }
+
+          function topmostModal(){
+            var open = listOpenModals();
+            if (!open.length) return null;
+            // Prefer highest z-index if present, otherwise last in DOM order
+            var top = open[open.length-1];
+            var topZ = -1;
+            for (var i=0;i<open.length;i++){
+              var z = 0;
+              try { z = parseInt((window.getComputedStyle(open[i]).zIndex||'0'), 10); } catch(_e){}
+              if (!isNaN(z) && z >= topZ){ topZ = z; top = open[i]; }
+            }
+            return top;
+          }
+
+          function getFocusable(modal){
+            if (!modal) return [];
+            var nodes = modal.querySelectorAll('a[href],button:not([disabled]),textarea,input,select,[tabindex]');
+            var out = [];
+            for (var i=0;i<nodes.length;i++){
+              var n = nodes[i];
+              if (!n) continue;
+              if (n.getAttribute && n.getAttribute('tabindex') === '-1') continue;
+              // skip hidden elements
+              if (n.offsetParent === null && n !== document.activeElement) continue;
+              out.push(n);
+            }
+            return out;
+          }
+
+          function focusFirst(modal){
+            var f = getFocusable(modal);
+            if (f.length) { try{ f[0].focus(); }catch(_e){} }
+          }
+
+          function closeModal(modal){
+            if (!modal) return;
+            try { modal.classList.add('hidden'); } catch(_e){}
+            activeModal = topmostModal();
+            if (!activeModal) {
+              // restore focus
+              if (prevFocus) { try{ prevFocus.focus(); }catch(_e2){} }
+              prevFocus = null;
+            } else {
+              focusFirst(activeModal);
+            }
+          }
+
+          function openModal(modal){
+            if (!modal) return;
+            if (!prevFocus) prevFocus = document.activeElement;
+            activeModal = modal;
+            try { modal.classList.remove('hidden'); } catch(_e){}
+            focusFirst(modal);
+          }
+
+          // Expose for existing openers (optional)
+          window.ModalManager = {
+            open: openModal,
+            close: closeModal,
+            top: topmostModal
+          };
+
+          document.addEventListener('keydown', function(e){
+            // Esc closes topmost modal, even if focused in an input
+            if (e.key === 'Escape' || e.key === 'Esc') {
+              var top = topmostModal();
+              if (top) {
+                e.preventDefault();
+                closeModal(top);
+                return;
+              }
+            }
+
+            // Trap Tab inside topmost modal
+            if (e.key === 'Tab') {
+              var t = topmostModal();
+              if (!t) return;
+              var focusables = getFocusable(t);
+              if (!focusables.length) return;
+
+              var first = focusables[0];
+              var last = focusables[focusables.length-1];
+              var cur = document.activeElement;
+
+              if (e.shiftKey) {
+                if (cur === first || cur === t) {
+                  e.preventDefault();
+                  try{ last.focus(); }catch(_e1){}
+                }
+              } else {
+                if (cur === last) {
+                  e.preventDefault();
+                  try{ first.focus(); }catch(_e2){}
+                }
+              }
+            }
+          });
+
+          // Patch common close buttons to also restore focus by using ModalManager.close
+          window._closeModalById = function(id){
+            var el = document.getElementById(id);
+            if (el) closeModal(el);
+          };
+        })();
+
+        // Esc should also close Quick Switcher (not a modal)
+        document.addEventListener('keydown', function(e){
+          if (e.key === 'Escape' || e.key === 'Esc') {
+            var qs = document.getElementById('quickSwitcher');
+            if (qs && !qs.classList.contains('hidden')) {
+              e.preventDefault();
+              qs.classList.add('hidden');
+              try { if (document.activeElement) document.activeElement.blur(); } catch(_e){}
+            }
+          }
+        });
+
+
+
+// Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
+          // Ctrl+F - Search
           if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
             e.preventDefault();
             var searchInput = document.getElementById('searchInput');
@@ -4902,11 +5721,42 @@
               searchInput.select();
             }
           }
+          // Ctrl+P - Quick Switcher
           if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
             e.preventDefault();
             window.toggleQuickSwitcher();
           }
-        });
+          // Ctrl+N - New Entry
+          if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+            e.preventDefault();
+            window.createNew();
+          }
+          // Ctrl+D - Duplicate Entry
+          if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+            e.preventDefault();
+            window.duplicate();
+          }
+          // Ctrl+H - Find & Replace
+          if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+            e.preventDefault();
+            window.openSearchReplaceModal();
+          }
+          // Ctrl+S - Save to File
+          if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            window.exportData();
+          }
+          // Ctrl+? or Ctrl+/ - Keyboard Shortcuts
+          if ((e.ctrlKey || e.metaKey) && (e.key === '?' || e.key === '/')) {
+            e.preventDefault();
+            window.showKeyboardShortcuts();
+          }
+          // Delete key - Delete Entry
+          if (e.key === 'Delete' && !e.target.matches('input, textarea')) {
+            e.preventDefault();
+            window.deleteEntry();
+          }
+});
       };
 
       // --------------------------------------------------------------------------
@@ -5026,14 +5876,47 @@
         window.renderTutorialStep();
       };
 
+      /**
+       * Clamp tooltip position to stay within viewport bounds
+       * @param {number} left - Desired left position
+       * @param {number} top - Desired top position
+       * @param {DOMRect} tipRect - Tooltip bounding rectangle
+       * @param {number} padding - Padding from viewport edges
+       * @returns {Object} Clamped {left, top} position
+       */
+      function clampToViewport(left, top, tipRect, padding) {
+        padding = padding || 10;
+
+        // Get viewport dimensions
+        var viewportWidth = window.innerWidth;
+        var viewportHeight = window.innerHeight;
+
+        // Clamp horizontal position
+        if (left < padding) {
+          left = padding;
+        } else if (left + tipRect.width > viewportWidth - padding) {
+          left = viewportWidth - tipRect.width - padding;
+        }
+
+        // Clamp vertical position
+        if (top < padding) {
+          top = padding;
+        } else if (top + tipRect.height > viewportHeight - padding) {
+          top = viewportHeight - tipRect.height - padding;
+        }
+
+        return { left: left, top: top };
+      }
+
       window.renderTutorialStep = function() {
         var step = currentTutData[tutStep];
         var ring = document.getElementById('tutorialRing');
         var tip = document.getElementById('tutorialTooltip');
-        
+
         document.getElementById('tutTitle').innerText = step.title;
         document.getElementById('tutText').innerText = step.text;
         tip.style.display = 'flex';
+        tip.style.transform = 'none'; // Reset transform
 
         if (step.id) {
           var el = document.getElementById(step.id);
@@ -5045,22 +5928,47 @@
             ring.style.left = (rect.left - 5) + 'px';
             ring.style.width = (rect.width + 10) + 'px';
             ring.style.height = (rect.height + 10) + 'px';
-            
+
+            // Get tooltip dimensions (must be visible to measure)
             var tipRect = tip.getBoundingClientRect();
+
+            // Try to position below the element first
             var topPos = rect.bottom + 15;
-            // If tooltip falls off bottom, flip above
-            if (topPos + tipRect.height > window.innerHeight) {
+            var leftPos = rect.left;
+
+            // If tooltip would go off the bottom, try positioning above
+            if (topPos + tipRect.height > window.innerHeight - 10) {
               topPos = rect.top - tipRect.height - 15;
             }
-            tip.style.top = topPos + 'px';
-            tip.style.left = rect.left + 'px';
+
+            // If still off screen (element at very top), position beside it
+            if (topPos < 10) {
+              topPos = rect.top;
+              leftPos = rect.right + 15;
+
+              // If off right edge, try left side
+              if (leftPos + tipRect.width > window.innerWidth - 10) {
+                leftPos = rect.left - tipRect.width - 15;
+              }
+            }
+
+            // Final clamp to ensure it's fully within viewport
+            var clamped = clampToViewport(leftPos, topPos, tipRect, 10);
+            tip.style.top = clamped.top + 'px';
+            tip.style.left = clamped.left + 'px';
             return;
           }
         }
+
+        // Fallback: center on screen
         ring.style.display = 'none';
-        tip.style.top = '100px';
-        tip.style.left = '50%';
-        tip.style.transform = 'translateX(-50%)';
+        var tipRect = tip.getBoundingClientRect();
+        var centeredLeft = (window.innerWidth - tipRect.width) / 2;
+        var centeredTop = 100;
+
+        var clamped = clampToViewport(centeredLeft, centeredTop, tipRect, 10);
+        tip.style.top = clamped.top + 'px';
+        tip.style.left = clamped.left + 'px';
       };
 
       window.nextTutorialStep = function() {
