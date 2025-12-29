@@ -173,13 +173,51 @@
 
     .sidebar-footer {
       display: flex;
-      gap: 6px;
+      flex-direction: column;
+      gap: 8px;
       padding-top: 8px;
       border-top: 1px solid var(--border-subtle);
-      flex-wrap: wrap;
       position: relative;
       z-index: 10;
       background: linear-gradient(180deg, rgba(2, 6, 23, 0.0), rgba(5, 8, 22, 0.98));
+    }
+
+    .button-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .button-group-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-soft);
+      font-weight: 600;
+      margin-bottom: 4px;
+      padding-left: 2px;
+    }
+
+    .button-section {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .button-section:not(:last-child) {
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .pill-button.primary {
+      background: radial-gradient(circle at top left, rgba(79, 70, 229, 0.6), rgba(67, 56, 202, 0.85));
+      border-color: rgba(99, 102, 241, 0.5);
+      font-weight: 600;
+    }
+
+    .pill-button.primary:hover {
+      background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.7), rgba(79, 70, 229, 0.95));
+      border-color: rgba(129, 140, 248, 0.6);
     }
 
     .pill-button {
@@ -977,20 +1015,47 @@
       <div class="entries-list" id="entriesList"></div>
 
       <div class="sidebar-footer">
-        <button type="button" class="pill-button small" onclick="window.createNew()" title="Create new entry (Ctrl+N)">+ New</button>
-        <button type="button" class="pill-button small" onclick="window.duplicate()" title="Duplicate selected entry (Ctrl+D)">Duplicate</button>
-        <button type="button" class="pill-button small" onclick="window.openDupModal()" title="Duplicate entry to another type">Duplicate To...</button>
-        <button type="button" class="pill-button danger small" onclick="window.deleteEntry()" title="Delete selected entry (Delete key)">🗑️ Delete</button>
-        <button type="button" class="pill-button small" onclick="window.addShift()" id="btnAddShift"
-          style="display:none;" title="Add a shift variant to this lore entry">+ Shift</button>
-        <button type="button" class="pill-button small" onclick="window.openAiEntryModal()" title="Generate new entry with AI">+ AI Entry</button>
-        <button type="button" class="pill-button small" onclick="window.openAiEditModal()" title="Edit current entry with AI">AI Edit</button>
-        <button type="button" class="pill-button small" onclick="window.openSearchReplaceModal()" title="Find and replace across all entries (Ctrl+H)">Find & Replace</button>
-        <button type="button" class="pill-button small" onclick="window.validateAll()" title="Check for logical contradictions">Validate</button>
-        <button type="button" class="pill-button small" onclick="window.runHealthCheck()" title="Scan data for common issues">Health Check</button>
-        <button type="button" class="pill-button small danger" onclick="window.openResetAllModal()" title="Reset all values (clears local data)">Reset</button>
-        <button type="button" class="pill-button small" onclick="window.openAiShiftModal()" id="btnAddAiShift"
-          style="display:none;" title="Generate shift variant with AI">+ AI Shift</button>
+        <!-- Primary Actions -->
+        <div class="button-section">
+          <div class="button-group-label">Create</div>
+          <div class="button-group">
+            <button type="button" class="pill-button small primary" onclick="window.createNew()" title="Create new entry (Ctrl+N)">✨ New</button>
+            <button type="button" class="pill-button small primary" onclick="window.openAiEntryModal()" title="Generate new entry with AI">🤖 AI Entry</button>
+          </div>
+        </div>
+
+        <!-- Edit Actions -->
+        <div class="button-section">
+          <div class="button-group-label">Edit</div>
+          <div class="button-group">
+            <button type="button" class="pill-button small" onclick="window.duplicate()" title="Duplicate selected entry (Ctrl+D)">📋 Duplicate</button>
+            <button type="button" class="pill-button small" onclick="window.openDupModal()" title="Duplicate entry to another type">📑 Dup To...</button>
+            <button type="button" class="pill-button small" onclick="window.openAiEditModal()" title="Edit current entry with AI">✏️ AI Edit</button>
+            <button type="button" class="pill-button small" onclick="window.openSearchReplaceModal()" title="Find and replace across all entries (Ctrl+H)">🔍 Find/Replace</button>
+          </div>
+        </div>
+
+        <!-- Utility Tools -->
+        <div class="button-section">
+          <div class="button-group-label">Tools</div>
+          <div class="button-group">
+            <button type="button" class="pill-button small" onclick="window.addShift()" id="btnAddShift"
+              style="display:none;" title="Add a shift variant to this lore entry">⚡ Shift</button>
+            <button type="button" class="pill-button small" onclick="window.openAiShiftModal()" id="btnAddAiShift"
+              style="display:none;" title="Generate shift variant with AI">🤖 AI Shift</button>
+            <button type="button" class="pill-button small" onclick="window.validateAll()" title="Check for logical contradictions">✓ Validate</button>
+            <button type="button" class="pill-button small" onclick="window.runHealthCheck()" title="Scan data for common issues">🏥 Health Check</button>
+          </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="button-section">
+          <div class="button-group-label">Danger Zone</div>
+          <div class="button-group">
+            <button type="button" class="pill-button danger small" onclick="window.deleteEntry()" title="Delete selected entry (Delete key)">🗑️ Delete</button>
+            <button type="button" class="pill-button danger small" onclick="window.openResetAllModal()" title="Reset all values (clears local data)">⚠️ Reset All</button>
+          </div>
+        </div>
       </div>
     </aside>
 
