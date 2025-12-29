@@ -1070,10 +1070,14 @@
         <div class="brand-block">
           <div class="brand-title">AURA Data Manager</div>
         </div>
-        <form class="form-group" style="flex-grow: 1; margin-bottom: 0; display: flex; gap: 6px;" onsubmit="event.preventDefault(); window.saveApiKey();">
+        <form class="form-group" style="flex-grow: 1; margin-bottom: 0; display: flex; gap: 6px; align-items: center;" onsubmit="event.preventDefault(); window.saveApiKey();">
           <input type="text" name="username" value="AI_API_Key" autocomplete="username" style="display:none">
-          <input type="password" id="apiKey" name="password" class="form-input small" placeholder="Enter API Key (Gemini or OpenRouter)" autocomplete="current-password">
+          <select id="apiKeySelector" class="form-input small" style="width: 150px;" onchange="window.switchApiKey()">
+            <option value="">Select API Key...</option>
+          </select>
+          <input type="password" id="apiKey" name="password" class="form-input small" placeholder="Enter API Key" autocomplete="current-password" style="flex: 1;">
           <button type="submit" class="pill-button small">Save</button>
+          <button type="button" class="pill-button small" onclick="window.openApiKeyManager()" title="Manage API Keys">⚙️</button>
         </form>
         <div class="tab-toggle" role="tablist" aria-label="Main view tabs">
           <button class="tab-button active" onclick="window.switchTab('visual')" role="tab" aria-selected="true" aria-controls="visualEditor">Visual</button>
@@ -1447,6 +1451,34 @@
       <div style="display:flex; justify-content:flex-end; gap:8px;">
         <button class="pill-button" type="button" onclick="window._closeModalById('deleteConfirmModal')">Cancel</button>
         <button id="btnDeleteConfirm" class="pill-button danger" type="button" onclick="window.confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- API Key Manager Modal -->
+  <div id="apiKeyManagerModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 450; display: flex; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-elevated); padding: 20px; border-radius: var(--radius-lg); width: 600px; max-width: 92%; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 14px;">
+      <div class="section-title">🔑 API Key Manager</div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="form-group">
+          <label class="form-label">Key Name</label>
+          <input type="text" id="newKeyName" class="form-input" placeholder="e.g., Gemini Personal, OpenRouter Work">
+        </div>
+        <div class="form-group">
+          <label class="form-label">API Key</label>
+          <input type="password" id="newKeyValue" class="form-input" placeholder="Enter API Key">
+        </div>
+        <button class="pill-button success" onclick="window.addNewApiKey()">➕ Add Key</button>
+      </div>
+
+      <div class="section-title" style="margin-top: 10px;">Saved Keys</div>
+      <div id="apiKeysList" style="max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: var(--radius-md);">
+        <!-- Keys list will be populated here -->
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
+        <button class="pill-button" onclick="window._closeModalById('apiKeyManagerModal')">Close</button>
       </div>
     </div>
   </div>
@@ -2007,12 +2039,179 @@
 
 
 
-      window.saveApiKey = function() {
-        var key = document.getElementById('apiKey').value.trim();
-        if (key) {
-          localStorage.setItem('aura_gemini_key', key);
-          window.showToast('API Key saved locally!', 'success');
+      // --------------------------------------------------------------------------
+      // API Key Management (Multi-Key Support)
+      // --------------------------------------------------------------------------
+      window.getApiKeys = function() {
+        try {
+          var keys = localStorage.getItem('aura_api_keys');
+          return keys ? JSON.parse(keys) : {};
+        } catch (e) {
+          return {};
         }
+      };
+
+      window.saveApiKeys = function(keys) {
+        localStorage.setItem('aura_api_keys', JSON.stringify(keys));
+      };
+
+      window.getActiveKeyName = function() {
+        return localStorage.getItem('aura_active_key') || '';
+      };
+
+      window.setActiveKeyName = function(name) {
+        localStorage.setItem('aura_active_key', name);
+      };
+
+      window.saveApiKey = function() {
+        var selector = document.getElementById('apiKeySelector');
+        var keyInput = document.getElementById('apiKey');
+        var selectedName = selector.value;
+        var keyValue = keyInput.value.trim();
+
+        if (!keyValue) {
+          window.showToast('Please enter an API key', 'error');
+          return;
+        }
+
+        if (!selectedName) {
+          window.showToast('Please select a key name or create a new one in Key Manager', 'error');
+          return;
+        }
+
+        var keys = window.getApiKeys();
+        keys[selectedName] = keyValue;
+        window.saveApiKeys(keys);
+        window.setActiveKeyName(selectedName);
+
+        window.showToast('API Key "' + selectedName + '" saved!', 'success');
+        window.refreshApiKeySelector();
+      };
+
+      window.switchApiKey = function() {
+        var selector = document.getElementById('apiKeySelector');
+        var keyInput = document.getElementById('apiKey');
+        var selectedName = selector.value;
+
+        if (!selectedName) {
+          keyInput.value = '';
+          return;
+        }
+
+        var keys = window.getApiKeys();
+        keyInput.value = keys[selectedName] || '';
+        window.setActiveKeyName(selectedName);
+      };
+
+      window.refreshApiKeySelector = function() {
+        var selector = document.getElementById('apiKeySelector');
+        var keys = window.getApiKeys();
+        var activeKey = window.getActiveKeyName();
+
+        selector.innerHTML = '<option value="">Select API Key...</option>';
+
+        Object.keys(keys).forEach(function(name) {
+          var option = document.createElement('option');
+          option.value = name;
+          option.textContent = name;
+          if (name === activeKey) option.selected = true;
+          selector.appendChild(option);
+        });
+      };
+
+      window.openApiKeyManager = function() {
+        window.renderApiKeysList();
+        document.getElementById('apiKeyManagerModal').classList.remove('hidden');
+      };
+
+      window.renderApiKeysList = function() {
+        var keys = window.getApiKeys();
+        var activeKey = window.getActiveKeyName();
+        var listEl = document.getElementById('apiKeysList');
+
+        if (Object.keys(keys).length === 0) {
+          listEl.innerHTML = '<div style="color: var(--text-soft); text-align: center; padding: 20px;">No API keys saved yet.</div>';
+          return;
+        }
+
+        var html = '';
+        Object.keys(keys).forEach(function(name) {
+          var isActive = (name === activeKey);
+          html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 6px; background: ' + (isActive ? 'rgba(79, 70, 229, 0.2)' : 'rgba(0,0,0,0.3)') + '; border: 1px solid ' + (isActive ? 'rgba(129, 140, 248, 0.5)' : 'var(--border)') + '; border-radius: var(--radius-md);">';
+          html += '<div style="flex: 1;">';
+          html += '<div style="font-weight: 600; font-size: 13px;">' + escHtml(name) + (isActive ? ' <span style="color: var(--success); font-size: 11px;">● Active</span>' : '') + '</div>';
+          html += '<div style="font-size: 11px; color: var(--text-soft); font-family: monospace;">***' + keys[name].slice(-8) + '</div>';
+          html += '</div>';
+          html += '<div style="display: flex; gap: 6px;">';
+          if (!isActive) {
+            html += '<button class="pill-button small" onclick="window.setApiKeyActive(\'' + escHtml(name) + '\')">Use</button>';
+          }
+          html += '<button class="pill-button danger small" onclick="window.deleteApiKey(\'' + escHtml(name) + '\')">Delete</button>';
+          html += '</div>';
+          html += '</div>';
+        });
+
+        listEl.innerHTML = html;
+      };
+
+      window.addNewApiKey = function() {
+        var nameInput = document.getElementById('newKeyName');
+        var valueInput = document.getElementById('newKeyValue');
+        var name = nameInput.value.trim();
+        var value = valueInput.value.trim();
+
+        if (!name) {
+          window.showToast('Please enter a name for the key', 'error');
+          return;
+        }
+
+        if (!value) {
+          window.showToast('Please enter an API key', 'error');
+          return;
+        }
+
+        var keys = window.getApiKeys();
+        keys[name] = value;
+        window.saveApiKeys(keys);
+
+        // Set as active if it's the first key
+        if (Object.keys(keys).length === 1 || !window.getActiveKeyName()) {
+          window.setActiveKeyName(name);
+        }
+
+        nameInput.value = '';
+        valueInput.value = '';
+
+        window.showToast('API Key "' + name + '" added!', 'success');
+        window.renderApiKeysList();
+        window.refreshApiKeySelector();
+        window.switchApiKey();
+      };
+
+      window.deleteApiKey = function(name) {
+        if (!confirm('Delete API key "' + name + '"?')) return;
+
+        var keys = window.getApiKeys();
+        delete keys[name];
+        window.saveApiKeys(keys);
+
+        // If we deleted the active key, clear it
+        if (window.getActiveKeyName() === name) {
+          window.setActiveKeyName('');
+          document.getElementById('apiKey').value = '';
+        }
+
+        window.showToast('API Key "' + name + '" deleted', 'success');
+        window.renderApiKeysList();
+        window.refreshApiKeySelector();
+      };
+
+      window.setApiKeyActive = function(name) {
+        window.setActiveKeyName(name);
+        window.renderApiKeysList();
+        window.refreshApiKeySelector();
+        window.switchApiKey();
+        window.showToast('Switched to "' + name + '"', 'success');
       };
 
       // --------------------------------------------------------------------------
@@ -4078,6 +4277,8 @@
           localStorage.removeItem('aura_global_scenario');
           localStorage.removeItem('aura_global_initial_message');
           localStorage.removeItem('aura_gemini_key');
+          localStorage.removeItem('aura_api_keys');
+          localStorage.removeItem('aura_active_key');
           localStorage.removeItem('aura_ui_state');
         } catch(_e0){}
 
@@ -6070,10 +6271,23 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
       // Boot
       // --------------------------------------------------------------------------
       window.onload = function () {
-        var savedKey = localStorage.getItem('aura_gemini_key');
-        if (savedKey) {
-          document.getElementById('apiKey').value = savedKey;
+        // Migrate old single API key to new multi-key system
+        var oldKey = localStorage.getItem('aura_gemini_key');
+        if (oldKey) {
+          var keys = window.getApiKeys();
+          // Only migrate if no keys exist yet
+          if (Object.keys(keys).length === 0) {
+            keys['Default'] = oldKey;
+            window.saveApiKeys(keys);
+            window.setActiveKeyName('Default');
+          }
+          // Remove old key after migration
+          localStorage.removeItem('aura_gemini_key');
         }
+
+        // Initialize API key selector and load active key
+        window.refreshApiKeySelector();
+        window.switchApiKey();
         
         var savedPers = localStorage.getItem('aura_global_personality');
         if (savedPers) {
