@@ -1408,7 +1408,11 @@
         <!-- Results go here -->
       </div>
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-        <button id="btnFixContradictions" class="pill-button" onclick="window.fixAllContradictions()" style="display:none;">Auto-Fix Simple</button>
+        <div style="display: flex; gap: 8px;">
+          <button id="btnFixContradictions" class="pill-button" onclick="window.fixAllContradictions()" style="display:none;">Auto-Fix Simple</button>
+          <button id="btnAiAutoFix" class="pill-button" onclick="window.openAiAutoFix()" style="display:none;">🤖 AI Auto-Fix</button>
+          <button id="btnAiRepair" class="pill-button" onclick="window.openAiRepair()" style="display:none;">🤖 AI Repair</button>
+        </div>
         <button class="pill-button success" onclick="(window._closeModalById?window._closeModalById('validationModal'):document.getElementById('validationModal').classList.add('hidden'))">Close</button>
       </div>
     </div>
@@ -4236,7 +4240,7 @@
 
       window.validateAll = function() {
         var results = [];
-        
+
         var checkRecursively = function(entries) {
             if (!entries) return;
             entries.forEach(function(entry) {
@@ -4252,17 +4256,23 @@
 
         checkRecursively(STATE.data.dynamiclore);
 
+        // Store results for AI fix
+        window._validationResults = results;
+
         var modal = document.getElementById('validationModal');
         var list = document.getElementById('validationResultList');
-        
+
         if (results.length === 0) {
-            list.innerHTML = '<div style="color: var(--success);">No logical contradictions found.</div>';
+            list.innerHTML = '<div style="color: var(--success);">✅ No logical contradictions found.</div>';
             document.getElementById('btnFixContradictions').style.display = 'none';
+            document.getElementById('btnAiAutoFix').style.display = 'none';
         } else {
             list.innerHTML = results.map(function(err) { return '<div>- ' + escHtml(err) + '</div>'; }).join('');
             document.getElementById('btnFixContradictions').style.display = 'block';
+            document.getElementById('btnAiAutoFix').style.display = 'block';
         }
-        
+
+        document.getElementById('btnAiRepair').style.display = 'none';
         modal.classList.remove('hidden');
       };
 
@@ -4333,15 +4343,20 @@
         }
         scanLore(STATE.data.dynamiclore, null);
 
+        // Store issues for AI repair
+        window._healthCheckIssues = issues;
+
         // Render report
         var modal = document.getElementById('validationModal');
         var list = document.getElementById('validationResultList');
         if (!modal || !list) return;
 
         document.getElementById('btnFixContradictions').style.display = 'none';
+        document.getElementById('btnAiAutoFix').style.display = 'none';
 
         if (!issues.length) {
           list.innerHTML = '<div style="color: var(--success);">✅ No issues found.</div>';
+          document.getElementById('btnAiRepair').style.display = 'none';
         } else {
           var html = '<div style="margin-bottom:8px;"><b>⚠️ ' + issues.length + ' issue(s) found</b></div>';
           for (i=0;i<issues.length;i++){
@@ -4357,6 +4372,7 @@
             html += '</div>';
           }
           list.innerHTML = html;
+          document.getElementById('btnAiRepair').style.display = 'block';
         }
 
         if (window.ModalManager && window.ModalManager.open) window.ModalManager.open(modal);
@@ -5259,6 +5275,80 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
         window.closeAiModal();
       };
 
+      window.openAiAutoFix = function() {
+        if (!window._validationResults || window._validationResults.length === 0) {
+          window.showToast("No validation errors to fix.", "info");
+          return;
+        }
+
+        // Build prompt from validation results
+        var errorList = window._validationResults.join('\n');
+        var prompt = "You are an expert at fixing AURA lorebook validation errors. Analyze the following validation errors and provide step-by-step instructions to fix them:\n\n" +
+                     "VALIDATION ERRORS:\n" + errorList + "\n\n" +
+                     "Please provide:\n" +
+                     "1. A summary of what's wrong\n" +
+                     "2. Step-by-step instructions to fix each issue\n" +
+                     "3. If possible, suggest which entries need modification\n\n" +
+                     "Current data structure reference:\n" +
+                     "- Emotion gates (max 2): andAnyEmotion, notAnyEmotion\n" +
+                     "- Eros gates (max 2): andAnyEros, notAnyEros\n" +
+                     "- Intent gates (max 1): andAnyIntent, notAnyIntent";
+
+        aiGenerationMode = 'validation_fix';
+        (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('aiModal')):document.getElementById('aiModal').classList.remove('hidden'));
+
+        document.getElementById('aiPrompt').value = prompt;
+        document.getElementById('aiPrompt').readOnly = true;
+        document.getElementById('aiResult').value = "";
+        document.getElementById('insertAiResultBtn').style.display = 'none';
+
+        var modal = document.getElementById('aiModal');
+        var successBtn = modal.querySelector('.pill-button.success');
+        if (successBtn) successBtn.style.display = 'inline-flex';
+
+        // Auto-generate
+        setTimeout(function() { window.generateAiText(); }, 100);
+      };
+
+      window.openAiRepair = function() {
+        if (!window._healthCheckIssues || window._healthCheckIssues.length === 0) {
+          window.showToast("No health check issues to repair.", "info");
+          return;
+        }
+
+        // Build prompt from health check results
+        var issuesList = window._healthCheckIssues.map(function(issue) {
+          return issue.kind.toUpperCase() + ': [' + issue.type + '] ' + issue.msg;
+        }).join('\n');
+
+        var prompt = "You are an expert at repairing AURA lorebook data issues. Analyze the following health check issues and provide step-by-step repair instructions:\n\n" +
+                     "HEALTH CHECK ISSUES:\n" + issuesList + "\n\n" +
+                     "Please provide:\n" +
+                     "1. A summary of the issues found\n" +
+                     "2. Step-by-step instructions to fix each issue\n" +
+                     "3. Suggestions for which entries/fields need to be updated\n" +
+                     "4. Any patterns or systemic problems you notice\n\n" +
+                     "Data structure reference:\n" +
+                     "- Characters: require 'key' field (unique identifier)\n" +
+                     "- Pairs: require two character keys in 'pair' array\n" +
+                     "- DynamicLore: require 'id_name' field";
+
+        aiGenerationMode = 'health_repair';
+        (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('aiModal')):document.getElementById('aiModal').classList.remove('hidden'));
+
+        document.getElementById('aiPrompt').value = prompt;
+        document.getElementById('aiPrompt').readOnly = true;
+        document.getElementById('aiResult').value = "";
+        document.getElementById('insertAiResultBtn').style.display = 'none';
+
+        var modal = document.getElementById('aiModal');
+        var successBtn = modal.querySelector('.pill-button.success');
+        if (successBtn) successBtn.style.display = 'inline-flex';
+
+        // Auto-generate
+        setTimeout(function() { window.generateAiText(); }, 100);
+      };
+
       window.generateAiText = async function () {
         var apiKey = document.getElementById('apiKey').value.trim().replace(/[\r\n\s]/g, '');
         if (!apiKey) {
@@ -5504,7 +5594,15 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
         var cvs = document.getElementById('graphCanvas');
         var parent = document.getElementById('graphView');
         if (!cvs || !parent) return;
-        
+
+        // Save existing node positions to restore them
+        var oldPositions = {};
+        if (gNodes && gNodes.length) {
+          gNodes.forEach(function(n) {
+            oldPositions[n.id] = { x: n.x, y: n.y, vx: n.vx, vy: n.vy };
+          });
+        }
+
         // Reset drag state to prevent stuck nodes across renders
         gDrag = { active: false, node: null, startX: 0, startY: 0, camX: 0, camY: 0, hasMoved: false };
 
@@ -5528,6 +5626,13 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
         if (showChar) {
           STATE.data.characters.forEach(function(c) {
             var n = { id: c.id, label: c.key, type: 'char', data: c, x: 0, y: 0, vx:0, vy:0, r: 15, color: '#a855f7' };
+            // Restore position if node existed before
+            if (oldPositions[c.id]) {
+              n.x = oldPositions[c.id].x;
+              n.y = oldPositions[c.id].y;
+              n.vx = oldPositions[c.id].vx;
+              n.vy = oldPositions[c.id].vy;
+            }
             charNodes.push(n);
             map[c.key] = n; // map by key for linking
           });
@@ -5539,6 +5644,13 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
             if (groupFilter && (p.group||"").toLowerCase().indexOf(groupFilter) === -1) return;
             var label = (p.pair||[]).join('+');
             var n = { id: p.id, label: label, type: 'pair', data: p, x: 0, y: 0, vx:0, vy:0, r: 10, color: '#f59e0b' };
+            // Restore position if node existed before
+            if (oldPositions[p.id]) {
+              n.x = oldPositions[p.id].x;
+              n.y = oldPositions[p.id].y;
+              n.vx = oldPositions[p.id].vx;
+              n.vy = oldPositions[p.id].vy;
+            }
             pairNodes.push(n);
             if (p.pair) {
               p.pair.forEach(function(k) { if(map[k]) gLinks.push({ s: n, t: map[k], len: 80 }); });
@@ -5555,6 +5667,13 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
             if (groupFilter && (l.group||"").toLowerCase().indexOf(groupFilter) === -1) return;
 
             var n = { id: l.id, label: l.id_name || 'Lore', type: 'lore', data: l, x: 0, y: 0, vx:0, vy:0, r: 12, color: '#4f46e5' };
+            // Restore position if node existed before
+            if (oldPositions[l.id]) {
+              n.x = oldPositions[l.id].x;
+              n.y = oldPositions[l.id].y;
+              n.vx = oldPositions[l.id].vx;
+              n.vy = oldPositions[l.id].vy;
+            }
             loreNodes.push(n);
             map[l.id] = n; // map by ID for shift parent linking
 
@@ -5617,27 +5736,33 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
         var cy = cvs.height / 2;
         var baseRadius = Math.min(cvs.width, cvs.height) * 0.3;
 
-        // Position characters in outer circle
+        // Position characters in outer circle (only if new/no saved position)
         charNodes.forEach(function(n, i) {
-          var angle = (i / charNodes.length) * Math.PI * 2;
-          n.x = cx + Math.cos(angle) * baseRadius * 1.2;
-          n.y = cy + Math.sin(angle) * baseRadius * 1.2;
+          if (!oldPositions[n.id]) {
+            var angle = (i / charNodes.length) * Math.PI * 2;
+            n.x = cx + Math.cos(angle) * baseRadius * 1.2;
+            n.y = cy + Math.sin(angle) * baseRadius * 1.2;
+          }
           gNodes.push(n);
         });
 
-        // Position pairs in middle circle
+        // Position pairs in middle circle (only if new/no saved position)
         pairNodes.forEach(function(n, i) {
-          var angle = (i / pairNodes.length) * Math.PI * 2 + Math.PI / 6; // Offset by 30 degrees
-          n.x = cx + Math.cos(angle) * baseRadius * 0.7;
-          n.y = cy + Math.sin(angle) * baseRadius * 0.7;
+          if (!oldPositions[n.id]) {
+            var angle = (i / pairNodes.length) * Math.PI * 2 + Math.PI / 6; // Offset by 30 degrees
+            n.x = cx + Math.cos(angle) * baseRadius * 0.7;
+            n.y = cy + Math.sin(angle) * baseRadius * 0.7;
+          }
           gNodes.push(n);
         });
 
-        // Position lore in inner circle
+        // Position lore in inner circle (only if new/no saved position)
         loreNodes.forEach(function(n, i) {
-          var angle = (i / loreNodes.length) * Math.PI * 2;
-          n.x = cx + Math.cos(angle) * baseRadius * 0.3;
-          n.y = cy + Math.sin(angle) * baseRadius * 0.3;
+          if (!oldPositions[n.id]) {
+            var angle = (i / loreNodes.length) * Math.PI * 2;
+            n.x = cx + Math.cos(angle) * baseRadius * 0.3;
+            n.y = cy + Math.sin(angle) * baseRadius * 0.3;
+          }
           gNodes.push(n);
         });
 
@@ -5659,6 +5784,13 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
               r: Math.max(6, 8 - depth),
               color: depth === 1 ? '#22c55e' : '#10b981'
             };
+            // Restore position if shift existed before
+            if (oldPositions[s.id]) {
+              sn.x = oldPositions[s.id].x;
+              sn.y = oldPositions[s.id].y;
+              sn.vx = oldPositions[s.id].vx;
+              sn.vy = oldPositions[s.id].vy;
+            }
             gNodes.push(sn);
             map[s.id] = sn; // map shift by ID
 
