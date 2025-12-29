@@ -137,6 +137,12 @@
       border-color: rgba(129, 140, 248, 0.7);
     }
 
+    .entry-item.selected {
+      background: rgba(79, 70, 229, 0.25);
+      border-color: rgba(129, 140, 248, 0.5);
+      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.3);
+    }
+
     .entry-item.shift-item {
       margin-left: 20px;
       border-left: 3px solid var(--accent);
@@ -1425,6 +1431,22 @@
     </div>
   </div>
 
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteConfirmModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 450; display: flex; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-elevated); padding: 20px; border-radius: var(--radius-lg); width: 460px; max-width: 92%; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 14px;">
+      <div class="section-title" style="color: var(--danger);">Confirm Delete</div>
+      <div id="deleteConfirmMessage" class="form-help"></div>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; user-select: none;">
+        <input type="checkbox" id="deleteConfirmDontAsk" style="cursor: pointer;">
+        <span>Don't ask me again</span>
+      </label>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="pill-button" type="button" onclick="window._closeModalById('deleteConfirmModal')">Cancel</button>
+        <button id="btnDeleteConfirm" class="pill-button danger" type="button" onclick="window.confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Duplicate To Modal -->
   <div id="dupModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: center; justify-content: center;">
     <div style="background: var(--bg-elevated); padding: 20px; border-radius: var(--radius-lg); width: 400px; max-width: 90%; box-shadow: var(--shadow-soft);">
@@ -1551,6 +1573,8 @@
         templateText: null,
         type: "characters", // characters | pairs | dynamiclore
         entryId: null,
+        selectedIds: [], // Multi-select support
+        lastSelectedId: null, // For shift-click range selection
         data: {
           characters: [],
           pairs: [],
@@ -1619,7 +1643,11 @@
         } catch (_e0) {}
 
         // Selection (apply after list renders)
-        if (s.entryId) STATE.entryId = s.entryId;
+        if (s.entryId) {
+          STATE.entryId = s.entryId;
+          STATE.selectedIds = [s.entryId];
+          STATE.lastSelectedId = s.entryId;
+        }
         if (s.shiftId) STATE.shiftId = s.shiftId;
 
         // Tabs (apply after DOM is ready)
@@ -1991,6 +2019,8 @@
         try{ saveUiState({ type: type, entryId: null, shiftId: null }); }catch(_e0){}
         STATE.entryId = null;
         STATE.shiftId = null;
+        STATE.selectedIds = [];
+        STATE.lastSelectedId = null;
         
         var searchInput = document.getElementById("searchInput");
         if (searchInput) {
@@ -2082,8 +2112,52 @@
         saveTextToFile(text, 'initial_message.txt', fileTypes);
       }
 
-      window.selectEntry = function (entryId, shiftId) {
-        STATE.entryId = entryId;
+      window.selectEntry = function (entryId, shiftId, event) {
+        // Handle multi-select with Ctrl/Shift
+        if (event && !shiftId) {
+          var arr = STATE.data[STATE.type];
+
+          if (event.ctrlKey || event.metaKey) {
+            // Ctrl+click: Toggle selection
+            var idx = STATE.selectedIds.indexOf(entryId);
+            if (idx > -1) {
+              STATE.selectedIds.splice(idx, 1);
+            } else {
+              STATE.selectedIds.push(entryId);
+            }
+            STATE.lastSelectedId = entryId;
+          } else if (event.shiftKey && STATE.lastSelectedId) {
+            // Shift+click: Select range
+            var flatList = [];
+            var collectIds = function(entries) {
+              for (var i = 0; i < entries.length; i++) {
+                flatList.push(entries[i].id);
+              }
+            };
+            collectIds(arr);
+
+            var startIdx = flatList.indexOf(STATE.lastSelectedId);
+            var endIdx = flatList.indexOf(entryId);
+            if (startIdx > -1 && endIdx > -1) {
+              var min = Math.min(startIdx, endIdx);
+              var max = Math.max(startIdx, endIdx);
+              STATE.selectedIds = flatList.slice(min, max + 1);
+            }
+          } else {
+            // Normal click: Single selection
+            STATE.selectedIds = [entryId];
+            STATE.lastSelectedId = entryId;
+          }
+
+          // Set primary selection to first selected (or the clicked one)
+          STATE.entryId = STATE.selectedIds.length > 0 ? STATE.selectedIds[0] : entryId;
+        } else {
+          // Legacy single selection (for shift navigation)
+          STATE.entryId = entryId;
+          STATE.selectedIds = [entryId];
+          STATE.lastSelectedId = entryId;
+        }
+
         STATE.shiftId = shiftId || null;
         try{ saveUiState({ entryId: STATE.entryId, shiftId: STATE.shiftId }); }catch(_e0){}
         renderList(true);
@@ -2149,6 +2223,8 @@
         STATE.data[STATE.type].push(newEntry);
         STATE.entryId = newId;
         STATE.shiftId = null;
+        STATE.selectedIds = [newId];
+        STATE.lastSelectedId = newId;
 
         renderList(true);
         renderEditor();
@@ -2166,6 +2242,8 @@
         STATE.data[STATE.type].push(clone);
         STATE.entryId = clone.id;
         STATE.shiftId = null;
+        STATE.selectedIds = [clone.id];
+        STATE.lastSelectedId = clone.id;
         renderList(true);
         renderEditor();
         renderCode();
@@ -2661,28 +2739,78 @@
       };
 
       window.deleteEntry = function () {
-        if (!STATE.entryId) {
+        if (!STATE.entryId && (!STATE.selectedIds || STATE.selectedIds.length === 0)) {
           window.showToast("No entry selected", "error");
           return;
         }
 
-        // Get entry name for confirmation
-        var entry = curr();
-        var entryName = "this entry";
-        if (entry) {
-          if (STATE.type === 'characters') {
-            entryName = entry.key || "Unnamed character";
-          } else if (STATE.type === 'pairs') {
-            entryName = (entry.pair && entry.pair.length) ? (entry.pair[0] + " & " + entry.pair[1]) : "Unnamed pair";
-          } else {
-            entryName = entry.id_name || "Unnamed lore entry";
+        // Check if user has disabled confirmation
+        var skipConfirm = localStorage.getItem('aura_skip_delete_confirm') === 'true';
+
+        // Determine what to delete
+        var idsToDelete = STATE.selectedIds && STATE.selectedIds.length > 0 ? STATE.selectedIds.slice() : [STATE.entryId];
+
+        if (skipConfirm) {
+          // Delete immediately without confirmation
+          window._performDelete(idsToDelete);
+        } else {
+          // Show confirmation modal
+          window._showDeleteModal(idsToDelete);
+        }
+      };
+
+      window._showDeleteModal = function(idsToDelete) {
+        var modal = document.getElementById('deleteConfirmModal');
+        var msgEl = document.getElementById('deleteConfirmMessage');
+        var checkbox = document.getElementById('deleteConfirmDontAsk');
+
+        // Build message
+        var message = '';
+        if (idsToDelete.length === 1) {
+          var entry = findEntry(idsToDelete[0], STATE.data[STATE.type]);
+          var entryName = "this entry";
+          if (entry) {
+            if (STATE.type === 'characters') {
+              entryName = entry.key || "Unnamed character";
+            } else if (STATE.type === 'pairs') {
+              entryName = (entry.pair && entry.pair.length) ? (entry.pair[0] + " & " + entry.pair[1]) : "Unnamed pair";
+            } else {
+              entryName = entry.id_name || "Unnamed lore entry";
+            }
           }
+          message = 'Delete "<b>' + entryName + '</b>"?<br><br>This cannot be undone.';
+        } else {
+          message = 'Delete <b>' + idsToDelete.length + ' entries</b>?<br><br>This cannot be undone.';
         }
 
-        if (!confirm("Delete \"" + entryName + "\"?\n\nThis cannot be undone.")) {
-          return;
+        msgEl.innerHTML = message;
+        checkbox.checked = false;
+
+        // Store IDs for confirmation
+        window._pendingDeleteIds = idsToDelete;
+
+        modal.classList.remove('hidden');
+      };
+
+      window.confirmDelete = function() {
+        var checkbox = document.getElementById('deleteConfirmDontAsk');
+
+        // Save preference if checked
+        if (checkbox.checked) {
+          localStorage.setItem('aura_skip_delete_confirm', 'true');
         }
 
+        // Close modal
+        window._closeModalById('deleteConfirmModal');
+
+        // Perform delete
+        if (window._pendingDeleteIds) {
+          window._performDelete(window._pendingDeleteIds);
+          window._pendingDeleteIds = null;
+        }
+      };
+
+      window._performDelete = function(idsToDelete) {
         var findAndDelete = function (entries, id) {
           for (var i = 0; i < entries.length; i++) {
             if (entries[i].id === id) {
@@ -2698,13 +2826,23 @@
           return false;
         };
 
-        if (findAndDelete(STATE.data[STATE.type], STATE.shiftId || STATE.entryId)) {
+        var deletedCount = 0;
+        for (var i = 0; i < idsToDelete.length; i++) {
+          if (findAndDelete(STATE.data[STATE.type], idsToDelete[i])) {
+            deletedCount++;
+          }
+        }
+
+        if (deletedCount > 0) {
           STATE.entryId = null;
           STATE.shiftId = null;
+          STATE.selectedIds = [];
+          STATE.lastSelectedId = null;
           renderList();
           renderEditor();
           renderCode();
           autoSave(); // Auto-save after deletion
+          window.showToast(deletedCount + " entr" + (deletedCount === 1 ? "y" : "ies") + " deleted", "success");
         }
       };
 
@@ -3580,10 +3718,11 @@
         }
 
         var active = (e.id === STATE.entryId && (!STATE.shiftId || STATE.shiftId === e.id)) ? "active" : "";
+        var selected = (STATE.selectedIds && STATE.selectedIds.indexOf(e.id) > -1 && !active) ? "selected" : "";
         var groupColor = e.group ? stringToColor(e.group) : 'transparent';
         var itemClass = depth > 0 ? "entry-item shift-item" : "entry-item";
 
-        html += '<div class="' + itemClass + ' ' + active + '" style="margin-left:' + (depth * 20) + 'px" onclick="window.selectEntry(\'' + e.id + '\')">';
+        html += '<div class="' + itemClass + ' ' + active + ' ' + selected + '" style="margin-left:' + (depth * 20) + 'px" onclick="window.selectEntry(\'' + e.id + '\', null, event)">';
         html += '<div><span class="group-indicator" style="background-color:' + groupColor + '"></span><span class="entry-item-title">' + (depth > 0 ? 'Shift: ' : '') + escHtml(title) + "</span></div>";
         html += '<div class="entry-item-subtitle">' + escHtml(sub) + "</div>";
         html += "</div>";
