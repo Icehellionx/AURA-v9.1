@@ -1827,6 +1827,13 @@
             timestamp: Date.now()
           };
           localStorage.setItem('aura_data_autosave', JSON.stringify(dataToSave));
+
+          // Update templateText to reflect current data state
+          // This ensures exports always use up-to-date content
+          if (STATE.templateText) {
+            STATE.templateText = patchFullFile(STATE.templateText);
+          }
+
           updateSaveIndicator('saved');
           clearDirty();
         } catch (err) {
@@ -3143,9 +3150,6 @@
 
       window.exportData = function () {
         var txt = genExport();
-        // Update templateText with the newly exported content
-        // This ensures future exports use the updated template
-        STATE.templateText = txt;
         var fileTypes = [{ description: 'JavaScript Files', accept: { 'application/javascript': ['.js'] } }];
         saveTextToFile(txt, importedFileName, fileTypes);
         // Mark as not-dirty after a successful export attempt (safety net)
