@@ -974,6 +974,14 @@
         <button class="data-type-btn" onclick="window.switchType('dynamiclore', event)" role="tab" aria-selected="false" aria-controls="entriesList">Lore</button>
       </div>
 
+      <div id="recentEntriesSection" style="padding: 0 4px 8px 4px; display: none;">
+        <div style="font-size: 10px; font-weight: 600; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 6px; display: flex; justify-content: space-between; align-items: center;">
+          <span>📌 Recent</span>
+          <span id="recentToggle" style="cursor: pointer;" onclick="window.toggleRecentEntries()">▼</span>
+        </div>
+        <div id="recentEntriesList" style="display: flex; flex-direction: column; gap: 2px;"></div>
+      </div>
+
       <div class="entries-list" id="entriesList"></div>
 
       <div class="sidebar-footer">
@@ -1016,7 +1024,15 @@
           <button class="pill-button small" onclick="document.getElementById('scenarioInput').click()" title="Import scenario from text file">Load Scenario</button>
           <button class="pill-button small" onclick="document.getElementById('initialMessageInput').click()" title="Import initial message from text file">Load Initial Message</button>
           <button class="pill-button small" onclick="window.importData()" title="Import database from .js script file">Load Script</button>
-          <button id="btn_save_file" class="pill-button small success" onclick="window.exportData()" title="Export database to .js script file (Ctrl+S)">💾 Save Script to File</button>
+          <div style="position: relative; display: inline-block;">
+            <button id="btn_save_file" class="pill-button small success" onclick="window.showExportMenu(event)" title="Export database (Ctrl+S)">💾 Export ▼</button>
+            <div id="exportMenu" class="hidden" style="position: absolute; top: 100%; right: 0; margin-top: 4px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: var(--shadow-soft); z-index: 1000; min-width: 200px;">
+              <button class="pill-button small" onclick="window.exportData('js'); window.hideExportMenu();" style="width: 100%; text-align: left; border-radius: 0; border: none; border-bottom: 1px solid var(--border-subtle);" title="Export as JavaScript file">📄 JavaScript (.js)</button>
+              <button class="pill-button small" onclick="window.exportData('json'); window.hideExportMenu();" style="width: 100%; text-align: left; border-radius: 0; border: none; border-bottom: 1px solid var(--border-subtle);" title="Export as JSON file">📋 JSON (.json)</button>
+              <button class="pill-button small" onclick="window.exportData('csv'); window.hideExportMenu();" style="width: 100%; text-align: left; border-radius: 0; border: none; border-bottom: 1px solid var(--border-subtle);" title="Export as CSV file">📊 CSV (.csv)</button>
+              <button class="pill-button small" onclick="window.exportData('txt'); window.hideExportMenu();" style="width: 100%; text-align: left; border-radius: 0; border: none;" title="Export as plain text">📝 Plain Text (.txt)</button>
+            </div>
+          </div>
         </div>
         <div id="autoSaveStatus" style="margin-left: 12px; font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
           <span id="saveIndicator">●</span>
@@ -1383,8 +1399,20 @@
           <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Delete</kbd>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
+          <span style="color: var(--text-soft);">Undo</span>
+          <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + Z</kbd>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
+          <span style="color: var(--text-soft);">Redo</span>
+          <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + Shift + Z</kbd>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
           <span style="color: var(--text-soft);">Search</span>
           <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + F</kbd>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
+          <span style="color: var(--text-soft);">Navigate Entries</span>
+          <kbd style="background: var(--bg-elevated-2); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">↑ / ↓</kbd>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);">
           <span style="color: var(--text-soft);">Find & Replace</span>
@@ -1472,7 +1500,10 @@
           pairs: [],
           dynamiclore: []
         },
-        activeScripts: []
+        activeScripts: [],
+        history: [],
+        historyIndex: -1,
+        recentEntries: [] // Track recently edited entries
       };
 
       // --------------------------------------------------------------------------
@@ -1577,10 +1608,16 @@
       function save(patch) {
         var entry = curr();
         if (entry) {
+          // Push to history before making changes
+          pushHistory();
+
           for (var k in patch) entry[k] = patch[k];
           renderList();
           renderCode();
           autoSave(); // Auto-save to localStorage
+
+          // Track recent entries
+          trackRecentEntry();
         }
       }
 
@@ -1646,6 +1683,111 @@
         } else if (status === 'error') {
           indicator.style.color = 'var(--danger)';
           text.textContent = 'Save error';
+        }
+      }
+
+      /**
+       * Push current state to history for undo/redo
+       */
+      function pushHistory() {
+        // Deep clone the current state
+        var snapshot = {
+          data: JSON.parse(JSON.stringify(STATE.data)),
+          type: STATE.type,
+          entryId: STATE.entryId
+        };
+
+        // If we're not at the end of history, truncate forward history
+        if (STATE.historyIndex < STATE.history.length - 1) {
+          STATE.history = STATE.history.slice(0, STATE.historyIndex + 1);
+        }
+
+        // Add new snapshot
+        STATE.history.push(snapshot);
+
+        // Limit history to last 50 states to prevent memory issues
+        if (STATE.history.length > 50) {
+          STATE.history.shift();
+        } else {
+          STATE.historyIndex++;
+        }
+      }
+
+      /**
+       * Undo last action
+       */
+      window.undo = function() {
+        if (STATE.historyIndex <= 0) {
+          window.showToast('Nothing to undo', 'info');
+          return;
+        }
+
+        STATE.historyIndex--;
+        var snapshot = STATE.history[STATE.historyIndex];
+
+        // Restore state
+        STATE.data = JSON.parse(JSON.stringify(snapshot.data));
+        STATE.type = snapshot.type;
+        STATE.entryId = snapshot.entryId;
+
+        // Re-render everything
+        renderList();
+        renderEditor();
+        renderCode();
+        autoSave();
+
+        window.showToast('Undo successful', 'success');
+      };
+
+      /**
+       * Redo last undone action
+       */
+      window.redo = function() {
+        if (STATE.historyIndex >= STATE.history.length - 1) {
+          window.showToast('Nothing to redo', 'info');
+          return;
+        }
+
+        STATE.historyIndex++;
+        var snapshot = STATE.history[STATE.historyIndex];
+
+        // Restore state
+        STATE.data = JSON.parse(JSON.stringify(snapshot.data));
+        STATE.type = snapshot.type;
+        STATE.entryId = snapshot.entryId;
+
+        // Re-render everything
+        renderList();
+        renderEditor();
+        renderCode();
+        autoSave();
+
+        window.showToast('Redo successful', 'success');
+      };
+
+      /**
+       * Track recently edited entries
+       */
+      function trackRecentEntry() {
+        if (!STATE.entryId) return;
+
+        var recentItem = {
+          id: STATE.entryId,
+          type: STATE.type,
+          timestamp: Date.now()
+        };
+
+        // Remove if already exists
+        STATE.recentEntries = STATE.recentEntries.filter(function(item) {
+          return !(item.id === STATE.entryId && item.type === STATE.type);
+        });
+
+        // Add to front
+        STATE.recentEntries.unshift(recentItem);
+
+        // Keep only last 10
+        if (STATE.recentEntries.length > 10) {
+          STATE.recentEntries = STATE.recentEntries.slice(0, 10);
         }
       }
 
@@ -1878,10 +2020,59 @@
         renderCode();
       };
 
+      /**
+       * Navigate to the next or previous entry in the sidebar using arrow keys
+       * @param {number} direction - 1 for down, -1 for up
+       */
+      window.navigateEntries = function(direction) {
+        var entries = STATE.data[STATE.type];
+        if (!entries || entries.length === 0) return;
+
+        // Flatten entries including shifts
+        var flatList = [];
+        var addToFlat = function(items, parentId) {
+          for (var i = 0; i < items.length; i++) {
+            flatList.push({ id: items[i].id, parentId: parentId });
+            if (items[i].shifts && items[i].shifts.length > 0) {
+              addToFlat(items[i].shifts, items[i].id);
+            }
+          }
+        };
+        addToFlat(entries, null);
+
+        // Find current index
+        var currentIndex = -1;
+        var currentId = STATE.shiftId || STATE.entryId;
+        for (var i = 0; i < flatList.length; i++) {
+          if (flatList[i].id === currentId) {
+            currentIndex = i;
+            break;
+          }
+        }
+
+        // Calculate new index
+        var newIndex = currentIndex + direction;
+        if (newIndex < 0) newIndex = 0;
+        if (newIndex >= flatList.length) newIndex = flatList.length - 1;
+
+        // Select new entry
+        if (newIndex !== currentIndex && flatList[newIndex]) {
+          var newEntry = flatList[newIndex];
+          if (newEntry.parentId) {
+            window.selectEntry(newEntry.parentId, newEntry.id);
+          } else {
+            window.selectEntry(newEntry.id);
+          }
+        }
+      };
+
       // --------------------------------------------------------------------------
       // CRUD
       // --------------------------------------------------------------------------
       window.createNew = function () {
+        // Push to history before creating
+        pushHistory();
+
         var newId = id(STATE.type);
         var newEntry;
 
@@ -1946,6 +2137,10 @@
       window.duplicate = function () {
         var entry = curr();
         if (!entry) return;
+
+        // Push to history before duplicating
+        pushHistory();
+
         var clone = JSON.parse(JSON.stringify(entry));
         clone.id = id(STATE.type);
         if (STATE.type === "characters" && clone.key) clone.key = String(clone.key) + "_copy";
@@ -2466,9 +2661,12 @@
           }
         }
 
-        if (!confirm("Delete \"" + entryName + "\"?\n\nThis cannot be undone.")) {
+        if (!confirm("Delete \"" + entryName + "\"?\n\nThis can be undone with Ctrl+Z.")) {
           return;
         }
+
+        // Push to history before deleting
+        pushHistory();
 
         var findAndDelete = function (entries, id) {
           for (var i = 0; i < entries.length; i++) {
@@ -2579,11 +2777,151 @@
       // --------------------------------------------------------------------------
       var importedFileName = "aura_v15_export.js";
 
-      window.exportData = function () {
-        var txt = genExport();
-        var fileTypes = [{ description: 'JavaScript Files', accept: { 'application/javascript': ['.js'] } }];
-        saveTextToFile(txt, importedFileName, fileTypes);
+      /**
+       * Show export menu dropdown
+       */
+      window.showExportMenu = function(event) {
+        event.stopPropagation();
+        var menu = document.getElementById('exportMenu');
+        menu.classList.toggle('hidden');
+
+        // Close menu when clicking outside
+        if (!menu.classList.contains('hidden')) {
+          setTimeout(function() {
+            document.addEventListener('click', window.hideExportMenu, { once: true });
+          }, 10);
+        }
       };
+
+      /**
+       * Hide export menu dropdown
+       */
+      window.hideExportMenu = function() {
+        document.getElementById('exportMenu').classList.add('hidden');
+      };
+
+      /**
+       * Export data in various formats
+       * @param {string} format - 'js', 'json', 'csv', or 'txt'
+       */
+      window.exportData = function (format) {
+        format = format || 'js';
+        var content, fileName, fileTypes;
+
+        if (format === 'js') {
+          content = genExport();
+          fileName = importedFileName || 'aura_v15_export.js';
+          fileTypes = [{ description: 'JavaScript Files', accept: { 'application/javascript': ['.js'] } }];
+        } else if (format === 'json') {
+          content = JSON.stringify(STATE.data, null, 2);
+          fileName = 'aura_data_export.json';
+          fileTypes = [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }];
+        } else if (format === 'csv') {
+          content = generateCSV();
+          fileName = 'aura_data_export.csv';
+          fileTypes = [{ description: 'CSV Files', accept: { 'text/csv': ['.csv'] } }];
+        } else if (format === 'txt') {
+          content = generatePlainText();
+          fileName = 'aura_data_export.txt';
+          fileTypes = [{ description: 'Text Files', accept: { 'text/plain': ['.txt'] } }];
+        }
+
+        saveTextToFile(content, fileName, fileTypes);
+      };
+
+      /**
+       * Generate CSV export of all entries
+       */
+      function generateCSV() {
+        var csv = '';
+        var escapeCSV = function(str) {
+          if (str == null) return '';
+          str = String(str);
+          if (str.indexOf(',') >= 0 || str.indexOf('"') >= 0 || str.indexOf('\n') >= 0) {
+            return '"' + str.replace(/"/g, '""') + '"';
+          }
+          return str;
+        };
+
+        // Characters
+        csv += 'Type,ID,Key,Gender,Aliases,Personality\n';
+        for (var i = 0; i < STATE.data.characters.length; i++) {
+          var c = STATE.data.characters[i];
+          csv += 'Character,' + escapeCSV(c.id) + ',' + escapeCSV(c.key) + ',' + escapeCSV(c.gender) + ',' +
+                 escapeCSV((c.aliases || []).join('; ')) + ',' + escapeCSV(c.personality) + '\n';
+        }
+
+        // Pairs
+        csv += '\nType,ID,Pair,Require Tags,Injection,Group\n';
+        for (var i = 0; i < STATE.data.pairs.length; i++) {
+          var p = STATE.data.pairs[i];
+          csv += 'Pair,' + escapeCSV(p.id) + ',' + escapeCSV((p.pair || []).join(' & ')) + ',' +
+                 escapeCSV((p.requireTags || []).join('; ')) + ',' + escapeCSV(p.injection) + ',' + escapeCSV(p.group) + '\n';
+        }
+
+        // Dynamic Lore
+        csv += '\nType,ID,ID Name,Priority,Group,Keywords,Tag,Triggers,Probability,Personality,Scenario\n';
+        for (var i = 0; i < STATE.data.dynamiclore.length; i++) {
+          var d = STATE.data.dynamiclore[i];
+          csv += 'Lore,' + escapeCSV(d.id) + ',' + escapeCSV(d.id_name) + ',' + escapeCSV(d.priority) + ',' +
+                 escapeCSV(d.group) + ',' + escapeCSV((d.keywords || []).join('; ')) + ',' + escapeCSV(d.tag) + ',' +
+                 escapeCSV((d.triggers || []).join('; ')) + ',' + escapeCSV(d.probability) + ',' +
+                 escapeCSV(d.personality) + ',' + escapeCSV(d.scenario) + '\n';
+        }
+
+        return csv;
+      }
+
+      /**
+       * Generate plain text export of all entries
+       */
+      function generatePlainText() {
+        var txt = 'AURA Data Export\n';
+        txt += '='.repeat(60) + '\n\n';
+
+        // Characters
+        txt += 'CHARACTERS (' + STATE.data.characters.length + ')\n';
+        txt += '-'.repeat(60) + '\n';
+        for (var i = 0; i < STATE.data.characters.length; i++) {
+          var c = STATE.data.characters[i];
+          txt += 'Key: ' + (c.key || 'Unnamed') + '\n';
+          txt += 'Gender: ' + (c.gender || 'N') + '\n';
+          if (c.aliases && c.aliases.length > 0) txt += 'Aliases: ' + c.aliases.join(', ') + '\n';
+          if (c.personality) txt += 'Personality: ' + c.personality + '\n';
+          txt += '\n';
+        }
+
+        // Pairs
+        txt += '\nPAIRS (' + STATE.data.pairs.length + ')\n';
+        txt += '-'.repeat(60) + '\n';
+        for (var i = 0; i < STATE.data.pairs.length; i++) {
+          var p = STATE.data.pairs[i];
+          txt += 'Pair: ' + ((p.pair || []).join(' & ') || 'Unnamed') + '\n';
+          if (p.group) txt += 'Group: ' + p.group + '\n';
+          if (p.requireTags && p.requireTags.length > 0) txt += 'Require Tags: ' + p.requireTags.join(', ') + '\n';
+          if (p.injection) txt += 'Injection: ' + p.injection + '\n';
+          txt += '\n';
+        }
+
+        // Dynamic Lore
+        txt += '\nDYNAMIC LORE (' + STATE.data.dynamiclore.length + ')\n';
+        txt += '-'.repeat(60) + '\n';
+        for (var i = 0; i < STATE.data.dynamiclore.length; i++) {
+          var d = STATE.data.dynamiclore[i];
+          txt += 'ID Name: ' + (d.id_name || 'Unnamed') + '\n';
+          txt += 'Priority: ' + (d.priority || 0) + '\n';
+          if (d.group) txt += 'Group: ' + d.group + '\n';
+          if (d.keywords && d.keywords.length > 0) txt += 'Keywords: ' + d.keywords.join(', ') + '\n';
+          if (d.tag) txt += 'Tag: ' + d.tag + '\n';
+          if (d.triggers && d.triggers.length > 0) txt += 'Triggers: ' + d.triggers.join(', ') + '\n';
+          if (d.probability) txt += 'Probability: ' + d.probability + '\n';
+          if (d.personality) txt += 'Personality: ' + d.personality + '\n';
+          if (d.scenario) txt += 'Scenario: ' + d.scenario + '\n';
+          txt += '\n';
+        }
+
+        return txt;
+      }
 
       window.importData = function () {
         window.openScriptLoader();
@@ -3265,10 +3603,74 @@
       // --------------------------------------------------------------------------
       // Rendering
       // --------------------------------------------------------------------------
+      /**
+       * Render recent entries section
+       */
+      function renderRecentEntries() {
+        var section = document.getElementById('recentEntriesSection');
+        var recentList = document.getElementById('recentEntriesList');
+
+        if (!STATE.recentEntries || STATE.recentEntries.length === 0) {
+          section.style.display = 'none';
+          return;
+        }
+
+        section.style.display = 'block';
+        var html = '';
+
+        for (var i = 0; i < Math.min(STATE.recentEntries.length, 5); i++) {
+          var recent = STATE.recentEntries[i];
+          var entry = findEntry(recent.id, STATE.data[recent.type]);
+          if (!entry) continue;
+
+          var title = 'Unnamed';
+          var typeLabel = '';
+          if (recent.type === 'characters') {
+            title = entry.key || 'Unnamed';
+            typeLabel = 'Char';
+          } else if (recent.type === 'pairs') {
+            title = (entry.pair && entry.pair.length) ? (entry.pair[0] + ' & ' + entry.pair[1]) : 'Unnamed';
+            typeLabel = 'Pair';
+          } else {
+            title = entry.id_name || 'Unnamed';
+            typeLabel = 'Lore';
+          }
+
+          var isActive = (STATE.entryId === recent.id && STATE.type === recent.type);
+          var activeClass = isActive ? 'active' : '';
+
+          html += '<div class="entry-item ' + activeClass + '" style="font-size: 11px; padding: 6px 8px;" onclick="window.switchType(\'' + recent.type + '\'); window.selectEntry(\'' + recent.id + '\')">';
+          html += '<div class="entry-item-title">' + escHtml(title) + '</div>';
+          html += '<div class="entry-item-subtitle" style="font-size: 9px;">' + typeLabel + '</div>';
+          html += '</div>';
+        }
+
+        recentList.innerHTML = html;
+      }
+
+      /**
+       * Toggle recent entries visibility
+       */
+      window.toggleRecentEntries = function() {
+        var recentList = document.getElementById('recentEntriesList');
+        var toggle = document.getElementById('recentToggle');
+
+        if (recentList.style.display === 'none') {
+          recentList.style.display = 'flex';
+          toggle.textContent = '▼';
+        } else {
+          recentList.style.display = 'none';
+          toggle.textContent = '▶';
+        }
+      };
+
       function renderList(scrollToActive) {
         var list = document.getElementById("entriesList");
         var arr = STATE.data[STATE.type];
         var term = document.getElementById("searchInput") ? document.getElementById("searchInput").value.toLowerCase().trim() : "";
+
+        // Render recent entries
+        renderRecentEntries();
 
         if (!arr || arr.length === 0) {
           list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-text">No entries</div></div>';
@@ -3283,7 +3685,7 @@
              if (STATE.type === "characters") text = (e.key || "") + " " + (e.aliases ? e.aliases.join(" ") : "");
              else if (STATE.type === "pairs") text = (e.pair ? e.pair.join(" ") : "") + " " + (e.group || "");
              else text = (e.id_name || "") + " " + (e.group || "") + " " + (e.keywords ? e.keywords.join(" ") : "");
-             
+
              var shiftMatch = false;
              if (e.shifts) {
                for(var s of e.shifts) {
@@ -3307,10 +3709,44 @@
         }
       }
 
+      /**
+       * Highlight search term in text
+       * @param {string} text - Text to highlight
+       * @param {string} term - Search term to highlight
+       * @returns {string} HTML with highlighted text
+       */
+      function highlightText(text, term) {
+        if (!term || !text) return escHtml(text);
+
+        var escaped = escHtml(text);
+        var termLower = term.toLowerCase();
+        var textLower = text.toLowerCase();
+        var index = textLower.indexOf(termLower);
+
+        if (index === -1) return escaped;
+
+        // Rebuild with highlighting
+        var result = '';
+        var lastIndex = 0;
+
+        while (index !== -1) {
+          result += escHtml(text.substring(lastIndex, index));
+          result += '<mark style="background: var(--accent-soft-2); color: var(--text-main); padding: 0 2px; border-radius: 2px;">';
+          result += escHtml(text.substring(index, index + term.length));
+          result += '</mark>';
+          lastIndex = index + term.length;
+          index = textLower.indexOf(termLower, lastIndex);
+        }
+
+        result += escHtml(text.substring(lastIndex));
+        return result;
+      }
+
       function renderEntry(e, depth) {
         var title = "Unnamed";
         var sub = "";
         var html = "";
+        var term = document.getElementById("searchInput") ? document.getElementById("searchInput").value.toLowerCase().trim() : "";
 
         if (STATE.type === "characters") {
           title = e.key || "Unnamed";
@@ -3327,9 +3763,13 @@
         var groupColor = e.group ? stringToColor(e.group) : 'transparent';
         var itemClass = depth > 0 ? "entry-item shift-item" : "entry-item";
 
+        // Highlight search term
+        var highlightedTitle = term ? highlightText(title, term) : escHtml(title);
+        var highlightedSub = term ? highlightText(sub, term) : escHtml(sub);
+
         html += '<div class="' + itemClass + ' ' + active + '" style="margin-left:' + (depth * 20) + 'px" onclick="window.selectEntry(\'' + e.id + '\')">';
-        html += '<div><span class="group-indicator" style="background-color:' + groupColor + '"></span><span class="entry-item-title">' + (depth > 0 ? 'Shift: ' : '') + escHtml(title) + "</span></div>";
-        html += '<div class="entry-item-subtitle">' + escHtml(sub) + "</div>";
+        html += '<div><span class="group-indicator" style="background-color:' + groupColor + '"></span><span class="entry-item-title">' + (depth > 0 ? 'Shift: ' : '') + highlightedTitle + "</span></div>";
+        html += '<div class="entry-item-subtitle">' + highlightedSub + "</div>";
         html += "</div>";
 
         if (STATE.type === "dynamiclore" && e.shifts && e.shifts.length) {
@@ -5156,15 +5596,118 @@
             e.preventDefault();
             window.showKeyboardShortcuts();
           }
+          // Ctrl+Z - Undo
+          if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+            e.preventDefault();
+            window.undo();
+          }
+          // Ctrl+Shift+Z or Ctrl+Y - Redo
+          if ((e.ctrlKey || e.metaKey) && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
+            e.preventDefault();
+            window.redo();
+          }
           // Delete key - Delete Entry
           if (e.key === 'Delete' && !e.target.matches('input, textarea')) {
             e.preventDefault();
             window.deleteEntry();
           }
+          // Arrow keys - Navigate entries in sidebar
+          if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.target.matches('input, textarea, select')) {
+            e.preventDefault();
+            window.navigateEntries(e.key === 'ArrowUp' ? -1 : 1);
+          }
           // Escape - Close modals
           if (e.key === 'Escape') {
             document.getElementById('keyboardShortcutsModal').classList.add('hidden');
             document.getElementById('quickSwitcher').classList.add('hidden');
+          }
+        });
+
+        // Drag & Drop file import
+        var dropZone = document.body;
+
+        dropZone.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.dataTransfer.dropEffect = 'copy';
+          dropZone.style.outline = '3px dashed var(--accent)';
+          dropZone.style.outlineOffset = '-10px';
+        });
+
+        dropZone.addEventListener('dragleave', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          // Only remove outline if we're leaving the body completely
+          if (e.target === dropZone) {
+            dropZone.style.outline = '';
+            dropZone.style.outlineOffset = '';
+          }
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.style.outline = '';
+          dropZone.style.outlineOffset = '';
+
+          var files = e.dataTransfer.files;
+          if (files.length === 0) return;
+
+          var file = files[0];
+          var ext = file.name.split('.').pop().toLowerCase();
+
+          if (ext === 'js') {
+            // Import JavaScript file
+            importedFileName = file.name;
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+              try {
+                parseImport(ev.target.result);
+                STATE.templateText = ev.target.result;
+                window.showToast('Imported: ' + file.name, 'success');
+                renderList();
+                renderEditor();
+                renderCode();
+              } catch (err) {
+                window.showToast('Import error: ' + err.message, 'error');
+                console.error('Import error:', err);
+              }
+            };
+            reader.readAsText(file);
+          } else if (ext === 'json') {
+            // Import JSON file
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+              try {
+                var data = JSON.parse(ev.target.result);
+                if (data.characters && data.pairs && data.dynamiclore) {
+                  STATE.data = data;
+                  window.showToast('Imported JSON: ' + file.name, 'success');
+                  renderList();
+                  renderEditor();
+                  renderCode();
+                  autoSave();
+                } else {
+                  window.showToast('Invalid JSON structure', 'error');
+                }
+              } catch (err) {
+                window.showToast('JSON parse error: ' + err.message, 'error');
+                console.error('JSON parse error:', err);
+              }
+            };
+            reader.readAsText(file);
+          } else {
+            window.showToast('Unsupported file type. Use .js or .json files.', 'error');
+          }
+        });
+
+        // Beforeunload confirmation
+        window.addEventListener('beforeunload', function(e) {
+          // Check if there's any data that might be lost
+          if (STATE.data.characters.length > 0 || STATE.data.pairs.length > 0 || STATE.data.dynamiclore.length > 0) {
+            e.preventDefault();
+            e.returnValue = 'You have unsaved data. Are you sure you want to leave?';
+            return e.returnValue;
           }
         });
       };
