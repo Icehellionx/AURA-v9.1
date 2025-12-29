@@ -1025,8 +1025,12 @@
         <div class="button-section">
           <div class="button-group-label">Create</div>
           <div class="button-group">
-            <button type="button" class="pill-button small primary" onclick="window.createNew()" title="Create new entry (Ctrl+N)">✨ New</button>
+            <button type="button" class="pill-button small primary" onclick="window.createNew()" title="Create new entry (Ctrl+N)">✨ New Entry</button>
             <button type="button" class="pill-button small primary" onclick="window.openAiEntryModal()" title="Generate new entry with AI">🤖 AI Entry</button>
+            <button type="button" class="pill-button small primary" onclick="window.addShift()" id="btnAddShift"
+              style="display:none;" title="Add a shift variant to this lore entry">⚡ New Shift</button>
+            <button type="button" class="pill-button small primary" onclick="window.openAiShiftModal()" id="btnAddAiShift"
+              style="display:none;" title="Generate shift variant with AI">🤖 AI Shift</button>
           </div>
         </div>
 
@@ -1045,10 +1049,6 @@
         <div class="button-section">
           <div class="button-group-label">Tools</div>
           <div class="button-group">
-            <button type="button" class="pill-button small" onclick="window.addShift()" id="btnAddShift"
-              style="display:none;" title="Add a shift variant to this lore entry">⚡ Shift</button>
-            <button type="button" class="pill-button small" onclick="window.openAiShiftModal()" id="btnAddAiShift"
-              style="display:none;" title="Generate shift variant with AI">🤖 AI Shift</button>
             <button type="button" class="pill-button small" onclick="window.validateAll()" title="Check for logical contradictions">✓ Validate</button>
             <button type="button" class="pill-button small" onclick="window.runHealthCheck()" title="Scan data for common issues">🏥 Health Check</button>
           </div>
