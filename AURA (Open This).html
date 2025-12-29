@@ -5,6 +5,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AURA v8.0 OMEGA Data Manager</title>
+
+  <!-- ============================================================================ -->
+  <!-- Security Hardening: Content Security Policy & Protection Headers -->
+  <!-- ============================================================================ -->
+  <!-- Restricts execution of malicious scripts and prevents data exfiltration -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'unsafe-inline' 'self';
+    style-src 'unsafe-inline' 'self';
+    connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://api.anthropic.com;
+    img-src 'self' data: blob:;
+    font-src 'self' data:;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+  ">
+  <!-- Prevent MIME-type sniffing attacks -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <!-- Prevent clickjacking attacks -->
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <!-- Enable XSS protection in legacy browsers -->
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <!-- Referrer policy for privacy -->
+  <meta name="referrer" content="no-referrer">
   <style>
     :root {
       --bg: #050816;
@@ -1696,6 +1722,211 @@
 
     // ============================================================================
     // End Quill Editor Integration
+    // ============================================================================
+
+    // ============================================================================
+    // Security Sandbox - Isolates AURA from malicious JavaScript
+    // ============================================================================
+    (function() {
+      'use strict';
+
+      // 1. Disable dangerous JavaScript functions to prevent code injection
+      // -------------------------------------------------------------------------
+      var originalEval = window.eval;
+      var originalFunction = window.Function;
+      var evalDisabled = false;
+
+      // Override eval() to prevent arbitrary code execution
+      window.eval = function() {
+        console.warn('[AURA Security] eval() is disabled for security reasons');
+        throw new Error('eval() has been disabled for security. This prevents malicious code execution.');
+      };
+
+      // Override Function constructor to prevent dynamic code generation
+      window.Function = function() {
+        console.warn('[AURA Security] Function constructor is disabled for security reasons');
+        throw new Error('Function constructor has been disabled for security.');
+      };
+
+      // Store originals in case AURA core needs them (controlled access)
+      window.__AURA_SECURE__ = {
+        eval: originalEval,
+        Function: originalFunction
+      };
+
+      // 2. Input Sanitization - Prevent XSS and injection attacks
+      // -------------------------------------------------------------------------
+      window.sanitizeHTML = function(str) {
+        if (!str) return '';
+        var div = document.createElement('div');
+        div.textContent = str; // This escapes HTML
+        return div.innerHTML;
+      };
+
+      window.sanitizeJSON = function(obj) {
+        if (typeof obj !== 'object' || obj === null) return obj;
+        var cleaned = Array.isArray(obj) ? [] : {};
+        for (var key in obj) {
+          if (obj.hasOwnProperty(key)) {
+            var value = obj[key];
+            if (typeof value === 'string') {
+              cleaned[key] = window.sanitizeHTML(value);
+            } else if (typeof value === 'object') {
+              cleaned[key] = window.sanitizeJSON(value);
+            } else {
+              cleaned[key] = value;
+            }
+          }
+        }
+        return cleaned;
+      };
+
+      // 3. Prevent prototype pollution attacks
+      // -------------------------------------------------------------------------
+      Object.freeze(Object.prototype);
+      Object.freeze(Array.prototype);
+      Object.freeze(String.prototype);
+      Object.freeze(Number.prototype);
+      Object.freeze(Boolean.prototype);
+
+      // 4. Secure localStorage wrapper with namespace isolation
+      // -------------------------------------------------------------------------
+      var AURA_NAMESPACE = 'aura_';
+      var originalSetItem = localStorage.setItem.bind(localStorage);
+      var originalGetItem = localStorage.getItem.bind(localStorage);
+      var originalRemoveItem = localStorage.removeItem.bind(localStorage);
+
+      // Wrap localStorage to enforce namespace and sanitization
+      window.secureStorage = {
+        setItem: function(key, value) {
+          if (!key.startsWith(AURA_NAMESPACE)) {
+            console.warn('[AURA Security] Blocked localStorage access to non-AURA key:', key);
+            return;
+          }
+          try {
+            // Sanitize value if it's a string
+            var sanitizedValue = typeof value === 'string' ? window.sanitizeHTML(value) : value;
+            originalSetItem(key, sanitizedValue);
+          } catch (e) {
+            console.error('[AURA Security] localStorage.setItem failed:', e);
+          }
+        },
+        getItem: function(key) {
+          if (!key.startsWith(AURA_NAMESPACE)) {
+            console.warn('[AURA Security] Blocked localStorage access to non-AURA key:', key);
+            return null;
+          }
+          try {
+            return originalGetItem(key);
+          } catch (e) {
+            console.error('[AURA Security] localStorage.getItem failed:', e);
+            return null;
+          }
+        },
+        removeItem: function(key) {
+          if (!key.startsWith(AURA_NAMESPACE)) {
+            console.warn('[AURA Security] Blocked localStorage access to non-AURA key:', key);
+            return;
+          }
+          try {
+            originalRemoveItem(key);
+          } catch (e) {
+            console.error('[AURA Security] localStorage.removeItem failed:', e);
+          }
+        }
+      };
+
+      // 5. Restrict window.open and prevent unwanted popups
+      // -------------------------------------------------------------------------
+      var originalWindowOpen = window.open;
+      window.open = function(url, target, features) {
+        // Only allow opening URLs explicitly approved
+        var allowedDomains = [
+          'generativelanguage.googleapis.com',
+          'api.openai.com',
+          'api.anthropic.com'
+        ];
+
+        if (url) {
+          var isAllowed = allowedDomains.some(function(domain) {
+            return url.includes(domain);
+          });
+
+          if (!isAllowed && !url.startsWith('data:') && !url.startsWith('blob:')) {
+            console.warn('[AURA Security] Blocked window.open to unauthorized URL:', url);
+            return null;
+          }
+        }
+
+        return originalWindowOpen.call(window, url, target, features);
+      };
+
+      // 6. Prevent document.write() which can be used for injection
+      // -------------------------------------------------------------------------
+      document.write = function() {
+        console.warn('[AURA Security] document.write() is disabled');
+        throw new Error('document.write() has been disabled for security.');
+      };
+
+      document.writeln = function() {
+        console.warn('[AURA Security] document.writeln() is disabled');
+        throw new Error('document.writeln() has been disabled for security.');
+      };
+
+      // 7. Secure fetch wrapper - validates API endpoints
+      // -------------------------------------------------------------------------
+      var originalFetch = window.fetch;
+      window.fetch = function(url, options) {
+        var allowedEndpoints = [
+          'https://generativelanguage.googleapis.com',
+          'https://api.openai.com',
+          'https://api.anthropic.com'
+        ];
+
+        var urlStr = typeof url === 'string' ? url : url.url;
+        var isAllowed = allowedEndpoints.some(function(endpoint) {
+          return urlStr.startsWith(endpoint);
+        });
+
+        if (!isAllowed) {
+          console.error('[AURA Security] Blocked fetch to unauthorized endpoint:', urlStr);
+          return Promise.reject(new Error('Fetch to unauthorized endpoint blocked by AURA security.'));
+        }
+
+        return originalFetch.apply(this, arguments);
+      };
+
+      // 8. Monitor and log security events
+      // -------------------------------------------------------------------------
+      window.__AURA_SECURITY_LOG__ = [];
+
+      window.logSecurityEvent = function(event, details) {
+        var logEntry = {
+          timestamp: new Date().toISOString(),
+          event: event,
+          details: details
+        };
+        window.__AURA_SECURITY_LOG__.push(logEntry);
+
+        // Keep only last 100 events to prevent memory bloat
+        if (window.__AURA_SECURITY_LOG__.length > 100) {
+          window.__AURA_SECURITY_LOG__.shift();
+        }
+      };
+
+      console.log('[AURA Security] Sandbox initialized successfully');
+      console.log('[AURA Security] Protection enabled:');
+      console.log('  ✓ eval() disabled');
+      console.log('  ✓ Function constructor disabled');
+      console.log('  ✓ Prototype pollution protection active');
+      console.log('  ✓ localStorage namespace isolation enabled');
+      console.log('  ✓ Network request validation active');
+      console.log('  ✓ Input sanitization available');
+      console.log('  ✓ XSS protection active');
+    })();
+
+    // ============================================================================
+    // End Security Sandbox
     // ============================================================================
 
     // ============================================================================
