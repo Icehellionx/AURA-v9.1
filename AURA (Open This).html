@@ -5487,18 +5487,38 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
           return;
         }
 
+        // Collect all entries with validation errors
+        var entriesToFix = [];
+        var collectRecursively = function(entries) {
+          if (!entries) return;
+          entries.forEach(function(entry) {
+            var errors = getEntryValidationErrors(entry);
+            if (errors.length > 0) {
+              entriesToFix.push({
+                id: entry.id,
+                id_name: entry.id_name,
+                errors: errors,
+                data: entry
+              });
+            }
+            if (entry.shifts) {
+              collectRecursively(entry.shifts);
+            }
+          });
+        };
+        collectRecursively(STATE.data.dynamiclore);
+
         // Build prompt from validation results
         var errorList = window._validationResults.join('\n');
-        var prompt = "You are an expert at fixing AURA lorebook validation errors. Analyze the following validation errors and provide step-by-step instructions to fix them:\n\n" +
+        var prompt = "You are an expert at fixing AURA lorebook validation errors. Fix the following entries automatically.\n\n" +
                      "VALIDATION ERRORS:\n" + errorList + "\n\n" +
-                     "Please provide:\n" +
-                     "1. A summary of what's wrong\n" +
-                     "2. Step-by-step instructions to fix each issue\n" +
-                     "3. If possible, suggest which entries need modification\n\n" +
-                     "Current data structure reference:\n" +
-                     "- Emotion gates (max 2): andAnyEmotion, notAnyEmotion\n" +
-                     "- Eros gates (max 2): andAnyEros, notAnyEros\n" +
-                     "- Intent gates (max 1): andAnyIntent, notAnyIntent";
+                     "ENTRIES WITH ERRORS:\n```json\n" + JSON.stringify(entriesToFix.map(function(e) { return e.data; }), null, 2) + "\n```\n\n" +
+                     "TASK: Return ONLY a valid JSON array of the FIXED entries. Maintain all 'id' fields. Fix the issues by:\n" +
+                     "- Reducing emotion gates (andAnyEmotion, notAnyEmotion, etc.) to max 2 items\n" +
+                     "- Reducing eros gates (andAnyEros, notAnyEros, etc.) to max 2 items\n" +
+                     "- Reducing intent gates (andAnyIntent, notAnyIntent, etc.) to max 1 item\n" +
+                     "- Keeping the most important/relevant items\n\n" +
+                     "Return ONLY the JSON array, no markdown, no explanations.";
 
         aiGenerationMode = 'validation_fix';
         (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('aiModal')):document.getElementById('aiModal').classList.remove('hidden'));
@@ -5522,22 +5542,32 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
           return;
         }
 
-        // Build prompt from health check results
+        // Build prompt from health check results with current data
         var issuesList = window._healthCheckIssues.map(function(issue) {
           return issue.kind.toUpperCase() + ': [' + issue.type + '] ' + issue.msg;
         }).join('\n');
 
-        var prompt = "You are an expert at repairing AURA lorebook data issues. Analyze the following health check issues and provide step-by-step repair instructions:\n\n" +
+        var dataSnapshot = {
+          characters: STATE.data.characters,
+          pairs: STATE.data.pairs,
+          dynamiclore: STATE.data.dynamiclore
+        };
+
+        var prompt = "You are an expert at repairing AURA lorebook data issues. Fix ALL the following issues automatically.\n\n" +
                      "HEALTH CHECK ISSUES:\n" + issuesList + "\n\n" +
-                     "Please provide:\n" +
-                     "1. A summary of the issues found\n" +
-                     "2. Step-by-step instructions to fix each issue\n" +
-                     "3. Suggestions for which entries/fields need to be updated\n" +
-                     "4. Any patterns or systemic problems you notice\n\n" +
-                     "Data structure reference:\n" +
-                     "- Characters: require 'key' field (unique identifier)\n" +
-                     "- Pairs: require two character keys in 'pair' array\n" +
-                     "- DynamicLore: require 'id_name' field";
+                     "CURRENT DATA:\n```json\n" + JSON.stringify(dataSnapshot, null, 2) + "\n```\n\n" +
+                     "TASK: Return ONLY a valid JSON object with the FIXED data. Maintain all 'id' fields. Fix issues by:\n" +
+                     "- Adding missing 'key' fields to characters (generate appropriate names)\n" +
+                     "- Adding missing 'id_name' fields to dynamiclore entries (generate descriptive names)\n" +
+                     "- Fixing malformed arrays (tags, keywords, etc.)\n" +
+                     "- Fixing missing character references in pairs\n\n" +
+                     "Return ONLY a JSON object in this format:\n" +
+                     "{\n" +
+                     "  \"characters\": [...],\n" +
+                     "  \"pairs\": [...],\n" +
+                     "  \"dynamiclore\": [...]\n" +
+                     "}\n\n" +
+                     "No markdown, no explanations, just the JSON.";
 
         aiGenerationMode = 'health_repair';
         (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('aiModal')):document.getElementById('aiModal').classList.remove('hidden'));
@@ -5777,6 +5807,56 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
               }
             } catch (e) {
               resultTextarea.value = "Error parsing JSON from AI. You can copy the text and manually update the entry.\n\n" + text;
+            }
+          } else if (aiGenerationMode === 'validation_fix') {
+            // Handle validation auto-fix - parse fixed entries and apply them
+            try {
+              var cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+              const fixedEntries = JSON.parse(cleanText);
+              var updateCount = 0;
+
+              fixedEntries.forEach(function(fixedEntry) {
+                if (fixedEntry.id) {
+                  // Find the entry in dynamiclore
+                  var target = findEntry(fixedEntry.id, STATE.data.dynamiclore);
+                  if (target) {
+                    Object.assign(target, fixedEntry);
+                    updateCount++;
+                  }
+                }
+              });
+
+              renderList();
+              renderEditor();
+              renderCode();
+              autoSave();
+              window.closeAiModal();
+              window.showToast(updateCount + " validation error(s) fixed!", "success");
+              // Re-run validation to show remaining issues
+              setTimeout(function() { window.validateAll(); }, 100);
+            } catch (e) {
+              resultTextarea.value = "Error parsing fixes. You can copy and manually apply.\n\n" + text;
+            }
+          } else if (aiGenerationMode === 'health_repair') {
+            // Handle health check auto-repair - parse fixed data and replace
+            try {
+              var cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+              const fixedData = JSON.parse(cleanText);
+
+              if (fixedData.characters) STATE.data.characters = fixedData.characters;
+              if (fixedData.pairs) STATE.data.pairs = fixedData.pairs;
+              if (fixedData.dynamiclore) STATE.data.dynamiclore = fixedData.dynamiclore;
+
+              renderList();
+              renderEditor();
+              renderCode();
+              autoSave();
+              window.closeAiModal();
+              window.showToast("Health check issues repaired!", "success");
+              // Re-run health check to show remaining issues
+              setTimeout(function() { window.runHealthCheck(); }, 100);
+            } catch (e) {
+              resultTextarea.value = "Error parsing repairs. You can copy and manually apply.\n\n" + text;
             }
           } else if (aiGenerationMode === 'edit_text') {
             resultTextarea.value = text;
