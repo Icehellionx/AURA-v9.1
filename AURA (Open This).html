@@ -5213,17 +5213,22 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
           window.showToast("No entry selected.", "error");
           return;
         }
+
+        // Check if multiple entries are selected
+        var selectedCount = (STATE.selectedIds && STATE.selectedIds.length > 1) ? STATE.selectedIds.length : 1;
+
         aiGenerationMode = 'edit_entry';
         (window.ModalManager&&window.ModalManager.open?window.ModalManager.open(document.getElementById('aiModal')):document.getElementById('aiModal').classList.remove('hidden'));
-        
+
         var contextName = (entry.id_name || entry.key || "this entry");
         if (STATE.shiftId) contextName = "this shift";
-        
+        else if (selectedCount > 1) contextName = selectedCount + " selected entries";
+
         document.getElementById('aiPrompt').value = "Refine " + contextName + ". ";
         document.getElementById('aiPrompt').readOnly = false;
         document.getElementById('aiResult').value = "";
         document.getElementById('insertAiResultBtn').style.display = 'none';
-        
+
         var modal = document.getElementById('aiModal');
         var successBtn = modal.querySelector('.pill-button.success');
         var dangerBtn = modal.querySelector('.pill-button.danger');
@@ -5375,12 +5380,26 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
             fullPrompt = "Personality Context:\n" + personalityContext + "\n\nScenario Context:\n" + scenarioContext + "\n\nPrompt:\n" + userPrompt;
 
             if (aiGenerationMode === 'edit_entry') {
-          var target = curr();
-          if (STATE.shiftId) {
-            target = findEntry(STATE.shiftId, STATE.data.dynamiclore);
-          }
-          if (target) {
-            fullPrompt += "\n\nCurrent JSON Entry:\n```json\n" + JSON.stringify(target, null, 2) + "\n```\n\nTask: Modify the JSON object above based on the user request. Return ONLY the valid JSON object. Maintain the 'id' field if possible.";
+          // Check if multiple entries are selected
+          if (STATE.selectedIds && STATE.selectedIds.length > 1 && !STATE.shiftId) {
+            // Multi-edit mode
+            var selectedEntries = [];
+            for (var i = 0; i < STATE.selectedIds.length; i++) {
+              var entry = findEntry(STATE.selectedIds[i], STATE.data[STATE.type]);
+              if (entry) selectedEntries.push(entry);
+            }
+            if (selectedEntries.length > 0) {
+              fullPrompt += "\n\nCurrent JSON Entries (array of " + selectedEntries.length + " objects):\n```json\n" + JSON.stringify(selectedEntries, null, 2) + "\n```\n\nTask: Modify ALL entries in the array above based on the user request. Return ONLY a valid JSON array with all modified objects. Maintain each entry's 'id' field.";
+            }
+          } else {
+            // Single entry edit mode
+            var target = curr();
+            if (STATE.shiftId) {
+              target = findEntry(STATE.shiftId, STATE.data.dynamiclore);
+            }
+            if (target) {
+              fullPrompt += "\n\nCurrent JSON Entry:\n```json\n" + JSON.stringify(target, null, 2) + "\n```\n\nTask: Modify the JSON object above based on the user request. Return ONLY the valid JSON object. Maintain the 'id' field if possible.";
+            }
           }
         } else if (aiGenerationMode === 'entry' || aiGenerationMode === 'shift') {
           if (STATE.type === 'characters' && aiGenerationMode === 'entry') {
@@ -5517,17 +5536,43 @@ window._finalizeSmartTag = function(input, context, field, keepFocus) {
           } else if (aiGenerationMode === 'edit_entry') {
             try {
               var cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-              const updatedEntry = JSON.parse(cleanText);
-              
-              var target = curr();
-              if (STATE.shiftId) target = findEntry(STATE.shiftId, STATE.data.dynamiclore);
-              
-              if (target) {
-                Object.assign(target, updatedEntry);
+              const parsedData = JSON.parse(cleanText);
+
+              // Check if we're in multi-edit mode
+              if (STATE.selectedIds && STATE.selectedIds.length > 1 && !STATE.shiftId) {
+                // Multi-edit mode: expect an array of updated entries
+                const updatedEntries = Array.isArray(parsedData) ? parsedData : [parsedData];
+                var updateCount = 0;
+
+                // Update each selected entry by matching ID
+                for (var i = 0; i < updatedEntries.length; i++) {
+                  var updatedEntry = updatedEntries[i];
+                  if (updatedEntry.id) {
+                    var target = findEntry(updatedEntry.id, STATE.data[STATE.type]);
+                    if (target) {
+                      Object.assign(target, updatedEntry);
+                      updateCount++;
+                    }
+                  }
+                }
+
                 renderList();
                 renderEditor();
                 window.closeAiModal();
-                window.showToast("Entry updated!", "success");
+                window.showToast(updateCount + " entr" + (updateCount === 1 ? "y" : "ies") + " updated!", "success");
+              } else {
+                // Single entry edit mode
+                const updatedEntry = parsedData;
+                var target = curr();
+                if (STATE.shiftId) target = findEntry(STATE.shiftId, STATE.data.dynamiclore);
+
+                if (target) {
+                  Object.assign(target, updatedEntry);
+                  renderList();
+                  renderEditor();
+                  window.closeAiModal();
+                  window.showToast("Entry updated!", "success");
+                }
               }
             } catch (e) {
               resultTextarea.value = "Error parsing JSON from AI. You can copy the text and manually update the entry.\n\n" + text;
